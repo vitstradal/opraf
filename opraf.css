@@ -1,0 +1,104 @@
+.pointer-hi, 
+.pointer, 
+.pointer-done, 
+.pointer-done-hi {
+	position:absolute;
+	/*border-bottom-left-radius: 10px; */
+	border-left: 2px solid yellow;
+	border-bottom: 2px solid yellow;
+}
+
+.pointer-done-hi, 
+.pointer-hi {
+	border-width: 3px;
+}
+
+.pointer { 
+	border-color: #F00; /*IE*/
+	border-color: rgba(255, 0, 0, 0.35);
+}
+.pointer-hi {
+	border-color: #F00; /*IE*/
+	border-color: rgba(255, 0, 0, 1);
+}
+.pointer-done {
+	border-color: #00F; /*IE*/
+	border-color: rgba(0, 0, 255, 0.2);
+}
+.pointer-done-hi {
+	border-color: #00F; /*IE*/
+	border-color: rgba(0, 0, 255, 1);
+}
+
+
+.box:hover, .box-done:hover {
+	border-width:3px;
+	margin: 0px;
+}
+.box, .box-done {
+	margin: 1px;
+	background-color: white;
+	width:300px;
+	/*position:absolute;*/
+	padding: 3px;
+	border: 2px solid black;
+	border-radius: 10px;
+}
+.box {
+	border-color: red;
+}
+.box-done {
+	border-color: blue;
+}
+form {
+	display:inline;
+}
+
+.float-right{
+	float:right;
+}
+
+.imgdiv {
+	position:relative;
+	left:0px;
+	top:0px;
+}
+#commform-div {
+	display: none;
+	position: absolute;
+	background-color: white;
+	border: 1px solid;
+	padding: 3px;
+	/*
+	width: 310;
+	height: 220;
+	*/
+	z-index: 10;
+	border: 4px solid red;
+	background-color: white;
+}
+.close-button{
+	background-color: yellow;	
+}
+
+body {
+	background-color: #b0b0ff;
+}
+
+
+
+.box button,
+.box img,
+.box-done button,
+.box-done img {
+	border: 1px solid white;
+	background-color:transparent;
+	margin:0;
+	padding: 1px;
+}
+.box button:hover,
+.box img:hover,
+.box-done img:hover,
+.box-done button:hover {
+	border: 1px solid black;
+}
