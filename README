@@ -1,0 +1,30 @@
+INFRO
+
+Web pdf anotator. Creates images from pdf, and allow add comment to chosen places. Comments are displayed on left side (word like).
+
+https://github.com/vitstradal/opraf
+
+INSTALL
+
+/*
+ * opraf.db:
+ *
+$ sqlite3 db/opaf.db
+
+CREATE TABLE opravy(
+	id INTEGER PRIMARY KEY,
+	pdf  TEXT,
+	img_id TEXT,
+	txt TEXT,
+	status TEXT,
+	au  TEXT,
+	x INTEGER,
+	y INTEGER
+);
+
+# set permissions,  webserver must have permission to write 
+$ chomd o+w db/ db/opraf.db
+$ chmod o+w tmp/
+
+protect dir by  .htacces and .ht
+
