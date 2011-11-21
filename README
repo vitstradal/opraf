@@ -26,5 +26,5 @@ CREATE TABLE opravy(
 $ chomd o+w db/ db/opraf.db
 $ chmod o+w tmp/
 
-protect dir by  .htacces and .ht
+protect dir by  .htacces and .htpasswd
 

@@ -1,50 +1,9 @@
 <?
-/*
- * configuration
- */
-# where pdf files lives  
-$pdf_dir = '..';
+require 'config.php';
 
-# where to store .png (must have write access)
-$img_dir = 'tmp';
-
-# where it is on web
-$img_uri = 'tmp';
-
-/*
- * end of configuration
- */
-$pdf_file = 'letak.pdf';
-
-/*
- * connection string
- */
-$db_conn = "sqlite:db/opraf.db";
-
-/*
- * opraf.db:
- *
-$ sqlite3 db/opaf.db
-
-CREATE TABLE opravy(
-	id INTEGER PRIMARY KEY,
-	pdf  TEXT,
-	img_id TEXT,
-	txt TEXT,
-	status TEXT,
-	au  TEXT,
-	x INTEGER,
-	y INTEGER
-);
-
-# set permissions 
-$ chomd o+w db/ db/opraf.db
-
- *
- */
-
-$help_doc = <<<EOL
-
+function get_help_doc()
+{
+	return  <<<EOL
 Bastl pro přidávání poznámek k .pdf souborům v adresáři /provedouci/.
 
 Před začátkem nebo pokud se .pdf aktalizovalo, je třeba vygenerovat obrázky
@@ -113,13 +72,25 @@ WISH LIST -- Nenaplněná přání
 * o editaci, nebo zadání, zůstat na stejnem místě, done
 
 EOL;
+} /* get_help_doc() */
 
-$img_undo = 'undo.png';
-$img_done = 'check.png';
-$img_dele = 'delete.png';
-$img_edit = 'edit.png';
+#image names
 
+$icons = array(
+	'undo' => 'imgs/undo.png',
+	'done' => 'imgs/check.png',
+	'dele' => 'imgs/delete.png',
+	'edit' => 'imgs/edit.png',
+	'link' => 'imgs/link.png',
+	'next' => 'imgs/next.png',
+	'nextgr' => 'imgs/next-gr.png',
+	);
+
+# database hanlder
 $db = null;
+
+# current pdf file name (from param 'pdf')
+$pdf_file = null;
 
 // init db, dispach post, or get
 function init()
@@ -133,15 +104,13 @@ function init()
 	# get ###################################################
 
 	global $pdf_file;
-	global $pdf_file_esc;
 	$pdf_file = get_get('pdf');
-	$pdf_file_esc = escape($pdf_file);
 
 	return true;
 }
 
 
-// connect to db
+// connect to database
 function myconnect()
 {
 	global $db;
@@ -151,17 +120,14 @@ function myconnect()
 	}
 	catch(PDOException $e)
 	{
-		echo escape($e->getMessage());
+		ee($e->getMessage());
 	}
 }
-$pdf_file = null;
 
 function get_pdf_file_post()
 {
 	global $pdf_file;
-	global $pdf_file_esc;
 	$pdf_file = get_post('pdf');
-	$pdf_file_esc = escape($pdf_file);
 }
 // after post handled, redirect to get
 function redir_to_get()
@@ -205,17 +171,15 @@ function do_post()
 {
 
 	global $pdf_file;
-	global $img_undo;
-	global $img_done;
-	global $img_dele;
+	global $icons;
 
 	get_pdf_file_post();
 	$action = get_post('action', 'none');
 
 	//IE, posila obsah butonu, wtfff?
-	if( false !== strpos($action, $img_done)) { $action = 'done';}
-	if( false !== strpos($action, $img_undo)) { $action = 'undone';}
-	if( false !== strpos($action, $img_dele)) { $action = 'del';}
+	if( false !== strpos($action, $icons['done'])) { $action = 'done';}
+	if( false !== strpos($action, $icons['undo'])) { $action = 'undone';}
+	if( false !== strpos($action, $icons['dele'])) { $action = 'del';}
 
 	switch($action) {
 	case 'del':
@@ -259,22 +223,30 @@ function regen_pdf_img()
 	$pdf_path = "$pdf_dir/$pdf_file";
 
 	if( !is_file($pdf_path) ) { 
-		die("file " . escape($pdf_path). " not exists");
+		ee("file ($pdf_path)  not exists");
+		die('');
 	}
 	$img_path = "$img_dir/$pdf_base.png";
 	$cmd = "convert -density 180x180 \"$pdf_path\" \"$img_path\"";
-	$cmd_esc = escape($cmd);
-	system($cmd, $rc);
 	if( $rc != 0) { 
-		echo ("</pre><p>Nepovedlo se spusit '$cmd_esc',<br/>Sorry... zkus:");
-		gen_gen_form(false);
+		render_regen_form($pdf_file, "Nepovedlo se spusit '$cmd',Sorry... zkus:", false);
 		exit(0);
 	}
-	echo ("hotovo ($cmd_esc).</br>");
-	echo ("Pokračovaní <a href='?pdf=". escape($pdf_file) . "'>zde</a>\n");
-	die("");
+	render_regen_pdf_img_done($cmd, $pdf_file);
+	die('');
 
 }
+function render_regen_pdf_img_done($cmd, $pdf_file)
+{?>
+	
+	hotovo (<?ee($cmd)?></br>
+	Pokračovaní <a href='?pdf=<?ee($pdf_file)?>'>zde</a>.
+<?}
+
+function render_regen_pdf_img_init()
+{?>
+	<pre>Generuji obrázky, čekej...
+<?}
 
 function regen2_pdf_img()
 {
@@ -283,7 +255,7 @@ function regen2_pdf_img()
 	global $img_dir;
 
 	get_pdf_file_post();
-	echo "<pre>Generuji obrázky, čekej...\n";
+	render_regen_pdf_img_init();
 	flush();
 	assert(preg_match('/^[-a-z_A-Z0-9\.]+$/', $pdf_file));
 
@@ -293,20 +265,19 @@ function regen2_pdf_img()
 	$pdf_path = "$pdf_dir/$pdf_file";
 
 	if( !is_file($pdf_path) ) { 
-		die("file " . escape($pdf_path). " not exists");
+		ee("file ($pdf_path) not exists");
+		die('');
 	}
 	$pageno = 0;
 	while(true) { 
 		$img_path = "$img_dir/$pdf_base-$pageno.png";
 		$pdf_path_page = "${pdf_path}[$pageno]";
 		$cmd = "convert -density 180x180 \"$pdf_path_page\" \"$img_path\"";
-		$cmd_esc = escape($cmd);
 		ee("$img_path\n");
 		flush();
 		system($cmd, $rc);
 		if( $rc != 0) { 
-			echo ("asi hotovo ($cmd_esc).</br>");
-			echo ("Pokračovaní <a href='?pdf=". escape($pdf_file) . "'>zde</a>\n");
+			render_regen_pdf_img_done($cmd, $pdf_file);
 			die("");
 		}
 		$pageno++;
@@ -321,7 +292,8 @@ function remove_images($imgs)
 	global $img_dir;
 	foreach($imgs as $img) { 
 		if( strpos($img, '/') != False ) { 
-			die("wrong img name: " . escape($img));
+			ee("wrong img name: $img");
+			die('');
 		}
 		unlink("$img_dir/$img");
 	}
@@ -336,8 +308,9 @@ function do_del()
 	$sql = "DELETE FROM opravy WHERE id = " . $db->quote($id);
 	$rc = $db->exec($sql);
 	if( $rc == 0 ) {
-		print_r($db->errorInfo());
-		die("cannt del from db. '" . escape($sql). "'");
+		#print_r($db->errorInfo());
+		ee("cannt del from db.'$sql'");
+		die('');
 	}
 }
 
@@ -348,12 +321,14 @@ function do_done($done)
 	global $db;
 	$new_status = $done ? 'DONE' : 'NONE';
 	$id = substr(get_post('id'), 2);
-	$sql = "UPDATE opravy SET status = " . $db->quote($new_status) . "  WHERE id = " . $db->quote($id);
+	$sql = "UPDATE opravy SET status = " . $db->quote($new_status) .
+		"  WHERE id = " . $db->quote($id);
 	$rc = $db->exec($sql);
 	//die("do_done($sql)$done.");
 	if( $rc == 0 ) {
-		print_r($db->errorInfo());
-		die("cannt update from db. '" . escape($sql). "'");
+		#print_r($db->errorInfo());
+		ee("cannt update from db. '$sql'. "); 
+		die('');
 	}
 }
 
@@ -387,8 +362,9 @@ function do_update_correction()
 
 	$rc = $db->exec($sql);
 	if( $rc == 0 ) {
-		print_r($db->errorInfo());
-		die("cannt update db '" .escape($sql). "'");
+		#print_r($db->errorInfo());
+		ee("cannt update db. '$sql'");
+		die('');
 	}
 }
 
@@ -416,8 +392,9 @@ function do_insert_correction()
 
 	$rc = $db->exec($sql);
 	if( $rc == 0 ) {
-		print_r($db->errorInfo());
-		die("cannt insert into db '".escape($sql)."'");
+		#print_r($db->errorInfo());
+		ee("cannt insert into db. '$sql'");
+		die('');
 	}
 }
 
@@ -427,7 +404,8 @@ function strip_ext($file)
 	return substr($file, 0, strrpos($file, '.')); 
 }
 
-// find image files, based on $pdf_base (letak.pdf -> letak-0.png, letak-1.png ...)
+// find image files, based on $pdf_base
+// (letak.pdf -> letak-0.png, letak-1.png ...)
 function get_images($pdf_base)
 {
 	global $img_dir;
@@ -452,7 +430,7 @@ function get_images($pdf_base)
 }
 
 // generate html with images
-function gen_images()
+function render_images()
 {
 	#TODO
 	global $pdf_file;
@@ -462,25 +440,27 @@ function gen_images()
 
 	$imgs = get_images($pdf_base);
 	if( count($imgs) == 0 ) { 
-		echo "Žádný obrázek. Obrázky je nutné vygenerovat.\n";
-		gen_gen_form();
-		echo "<hr/>\n";
+		render_regen_form($pdf_file, 'Žádný obrázek. Obrázky je nutné vygenerovat');
 		return;
 	}
-	check_update($pdf_base, $imgs[0]);
+	render_check_update($pdf_base, $imgs[0]);
 
 	foreach($imgs as $idx => $img) {
 		$img_uri_path = "$img_uri/$img";
-		$img_path = escape("$img_dir/$img");
+		$img_path = "$img_dir/$img";
 		list($w, $h) = getimagesize($img_path);
-		$id = "img-" . escape($idx);
-		echo " <div class='imgdiv'><img width='$w' height='$h' onclick='img_click(this,event)' id='$id' src='$img_path'/></div><hr/>\n";
+		$id = "img-$idx";
+		render_image($img_path, $id, $w, $h);
 	}
 }
+function render_image($img_path, $id, $w, $h)
+{?>
+	 <div class='imgdiv'><img width=<?eea($w)?> height=<?eea($h)?> onclick='img_click(this,event)' id=<?eea($id)?> src=<?eea($img_path)?>/></div><hr/>
+<?}
 
 // check if .pdf is newer than first img
 // if yes: display warning, and regen button
-function check_update($pdf_base, $img_first)
+function render_check_update($pdf_base, $img_first)
 {
 	global $img_dir;
 	global $pdf_dir;
@@ -495,12 +475,18 @@ function check_update($pdf_base, $img_first)
 		return;
 	}
 	if( filemtime($pdf_path) > filemtime($img0_path) ) { 
-		echo "Obrázky jsou starší, než původní .pdf. Zkus je přegenerovat.\n";
-		gen_gen_form();
-		echo "<hr/>\n";
+		render_regen_form($pdf_file, "Obrázky jsou starší, než původní .pdf. Zkus je přegenerovat.");
 	}
 	
 }
+
+/**
+ * 
+ * silly template system
+ * 
+ * a) output is in render_*()
+ * b) thruu ee() eea() and ejs() 
+ */
 
 // escape to html
 function escape($txt)
@@ -508,22 +494,37 @@ function escape($txt)
 	return htmlspecialchars($txt, ENT_QUOTES);
 }
 
-function ee($txt) 
+// echo html-escaped text
+function ee($txt, $id = null) 
 {
+	if( $id !== null ) { 
+		echo escape($txt[$id]);
+		return;
+	}
 	echo escape($txt);
+}
+// echo html-escaped attribute
+function eea($txt, $id = null) 
+{
+	if( $id !== null ) { 
+		echo "'" . escape($txt[$id]) . "'";
+		return;
+	}
+	echo "'" . escape($txt, $id) . "'";
+}
+
+// echo js-escaped object
+function ejs($obj)
+{
+	echo json_encode($obj);
 }
 
 // generate html corrections section
-function gen_opravy()
+function render_opravy()
 {
 	global $db;
+	global $icons;
 	global $pdf_file;
-	global $img_undo;
-	global $img_done;
-	global $img_dele;
-	global $img_edit;
-	global $pdf_file_esc;
-	echo "<div class='opravy'>\n";
 	$imgs = array();
 
 	$sql = "SELECT * from opravy WHERE pdf = " . $db->quote($pdf_file);
@@ -536,82 +537,84 @@ function gen_opravy()
 	}
 	if( count($opravy) > 0 ) {
 		arsort(&$statistika);
-		if( count($statistika) > 1 ) {
-			echo "Děkujeme opravovatelům: \n";
-		}
-		else {
-			echo "Děkujeme: \n";
+
+		$msg =  "Děkujeme opravovatelům:";
+
+		if( count($statistika) == 1 ) {
+			$msg =  "Děkujeme:";
 		}
 		$sep ='';
+		$text ='';
 		foreach($statistika as $au => $count) {
-			echo   $sep . escape($au) . "($count)";
-			$sep = ",\n";
+			$text .= "${sep}$au($count)";
+			$sep = ", ";
 		}
-		echo ".\n<hr>\n";
+		render_statistika($msg, $text);
 	}
+
 	usort($opravy, 'opravy_cmp');
 	for($i = 0; $i < count($opravy); $i++) {
 		$row = $opravy[$i];
-		$next_id =  $i + 1< count($opravy) ?  escape('op' .$opravy[$i+1]['id']) : null;
-		$id = escape('op' . $row['id']);
-		$x  = escape($row['x']);
-		$y  = escape($row['y']);
-		$img_id = escape($row['img_id']);
-		$txt =escape($row['txt']);
-		$st =escape($row['status']);
-		$au = escape($row['au']);
-		$imgs[$img_id][] = array($id, $x, $y);
-		if( $st == 'DONE' ) {
-			echo "<div onclick='img_click(this,event)' id='$id-pointer' class='pointer-done'></div>\n";
-			echo "<div name='$id' id='$id' class='box-done' onmouseover='box_onmouseover(this,1)' onmouseout='box_onmouseout(this,1)' >\n";
-		}else {
-			echo "<div onclick='img_click(this,event)' id='$id-pointer' class='pointer'></div>\n";
-			echo "<div name='$id' id='$id' class='box' onmouseover='box_onmouseover(this,0)' onmouseout='box_onmouseout(this,0)' >\n";
-		}
-		echo "   <span id='$id-text'>$txt</span>\n";
-		echo "   <br/><i>au:$au</i>\n";
-		echo " <div class='float-right'>\n";
-		echo "   <form  action='#' onsubmit='save_scroll(this)' method='POST'>\n";
-		#echo "     <button><a style='text-decoration:none' href='#$id'>#</a></button>\n";
-		echo "     <input type='hidden' name='pdf' value='$pdf_file_esc'>\n";
-		echo "     <input type='hidden' name='id' value='$id'>\n";
-		echo "     <input type='hidden' name='scroll' value='$id'>\n";
-		echo "     <button type='submit' name='action' value='del' title='Smaž opravu'><img src='imgs/$img_dele'/></button>\n";
-		if( $st == 'DONE' ) {
-			echo "     <button type='submit' name='action' value='undone' title='Označ jako neopravené'><img src='imgs/$img_undo'/></button>\n";
-		} else {
-			echo "     <button type='submit' name='action' value='done' title='Označ jako opravené'><img src='imgs/$img_done'/></button>\n";
-		}
-		echo "     <button type='button' onclick='box_edit(this);' title='Oprav opravu'>";
-		echo                 "<img src='imgs/$img_edit'/></button>\n";
-		#echo "     <a href='#$id'><button type='button' title='Link na opravu'><img src='imgs/link.png'/></button></a>";
-		echo "     <a href='#$id'><img title='Link na opravu' src='imgs/link.png'/></a>";
-		if( $next_id ) { 
-			echo "     <a href='#$next_id'><img title='Další oprava' src='imgs/next.png'/></button></a>";
-		} else {
-			echo "     <img title='Toto je poslední oprava' src='imgs/next-gr.png'/>";
-		}
-		echo " </form>\n";
-		echo "</div>\n";
-		echo "</div>\n";
+		$next_id =  $i + 1< count($opravy) ?  'op' . $opravy[$i+1]['id'] : null;
+		$id = 'op' . $row['id'];
+		$img_id = $row['img_id'];
+		$imgs[$img_id][] = array($id, (int)$row['x'], (int)$row['y']);
+		render_oprava($pdf_file, $id, $next_id, $pdf_file, $row, $icons);
 	}
-	echo "</div>\n";
-	echo "<script>\n";
-	foreach($imgs as $img_id => $opravy) { 
-		$img_id_esc = escape($img_id);
-		echo "place_comments_one_div('$img_id',[\n";
-		foreach($opravy as $oprava) {
-			$id = escape($oprava[0]);
-			$x = escape((int)$oprava[1]);
-			$y = escape((int)$oprava[2]);
-			echo  "\t['$id', $x, $y],\n";
-		}
-		echo "\t]);\n";
-	}
-	echo "</script>\n";
-
-
+	render_opravy_script($imgs);
 }
+
+
+function render_opravy_script($imgs)
+{?>
+	<script>
+	<? foreach($imgs as $img_id => $opravy): ?> 
+	  place_comments_one_div(<?ejs($img_id)?>, <?ejs($opravy)?>);
+	<? endforeach ?>
+	</script>
+<?}
+
+function render_statistika($pre_msg, $text)
+{?>
+	<?ee($pre_msg)?><?ee($msg)?>
+	<hr>
+<?}
+
+function render_oprava($pdf_file, $id, $next_id, $pdf_file, $row, $icons)
+{?>
+	<? if( $row['st'] == 'DONE' ) : ?>
+	  <div onclick='img_click(this,event)' id='<?ee($id)?>-pointer' class='pointer-done'></div>
+	  <div name=<?eea($id)?> id=<?eea($id)?> class='box-done' onmouseover='box_onmouseover(this,1)' onmouseout='box_onmouseout(this,1)' >
+	<? else: ?>
+	  <div onclick='img_click(this,event)' id='<?ee($id)?>-pointer' class='pointer'></div>
+	  <div name=<?eea($id)?> id=<?eea($id)?> class='box' onmouseover='box_onmouseover(this,0)' onmouseout='box_onmouseout(this,0)' >
+	<? endif ?> 
+
+	<span id='<?ee($id)?>-text'><?ee($row, 'txt')?></span>
+	<br/><i>au:<?ee($row, 'au')?></i>
+	<div class='float-right'>
+	<form  action='#' onsubmit='save_scroll(this)' method='POST'>
+	<input type='hidden' name='pdf' value=<?eea($pdf_file)?>>
+	<input type='hidden' name='id' value=<?eea($id)?>>
+	<input type='hidden' name='scroll'>
+	<button type='submit' name='action' value='del' title='Smaž opravu'><img src=<?eea($icons,'dele')?>/></button>
+	<? if( $st == 'DONE' ) : ?>
+	  <button type='submit' name='action' value='undone' title='Označ jako neopravené'><img src=<?eea($icons,'undo')?>/></button>
+	<? else: ?>
+	  <button type='submit' name='action' value='done' title='Označ jako opravené'><img src=<?eea($icons,'done')?>/></button>
+	<? endif ?> 
+	<button type='button' onclick='box_edit(this);' title='Oprav opravu'><img src=<?eea($icons, 'edit')?>/></button>
+	<a href='#<?ee($id)?>'><button type='button' title='Link na opravu'><img src=<?eea($icons, 'link')?>/></button></a>
+	<? if( $next_id ) : ?>
+	  <a href='#$next_id'><img title='Další oprava' src=<?eea($icons, 'next')?>/></button></a>
+	<? else: ?>
+	   <img title='Toto je poslední oprava' src=<?eea($icons, 'nextgr')?>/>
+	<? endif ?> 
+	</form>
+	</div>
+	</div>
+<?}
+
 // prvky jsou radky ze selecty * from opravy
 function opravy_cmp(&$a, &$b)
 {
@@ -628,115 +631,118 @@ function opravy_cmp(&$a, &$b)
 
 // gen javascript sectin which scrolls to page offset
 // defined by scroll= param
-function gen_scroll()
-{
-	$scroll = get_get('scroll');
-	if( $scroll === null ) { 
-		return;
+function render_scroll($scroll)
+{?>
+	<? if( $scroll === null ) { return; } ?>
+	<script>
+	  window.scrollTo(0,<?ejs((int)$scroll)?>);
+	</script>
 
-	}
-	$scroll_esc = escape((int)$scroll);
-	echo "<script>";
-	//echo "function onload() { window.scrollTo(0,$scroll_esc);}";
-	echo "window.scrollTo(0,$scroll_esc);";
-	echo "</script>\n";
-}
+<?}
+
 // gen html documentation
-function gen_doc()
-{
-	global $help_doc;
-	echo "<pre>". escape($help_doc) . "</pre>\n";
-}
+function render_doc()
+{?>
+	<pre><? ee(get_help_doc()) ?></pre>
+<?}
 
-// gen dir list of .pdf files
-function gen_ls()
+
+function render_ls_files()
 {
 	global $pdf_dir;
 	$dir = opendir($pdf_dir);
-	echo "<br/>\n";
 	$files = array();
 	while (($file = readdir($dir)) !== false)  {
-		$files[] = $file;
-	}
-	sort($files);
-	foreach($files as $file) {
 		if( substr($file, -4) != '.pdf' ){ 
 			continue;
 		}
-		echo "<a href='?pdf=" . urlencode($file) . "'>";
-		echo escape($file) .  "</a><br/>\n";
+		$files[] = $file;
 	}
+	sort($files);
+	return $files;
 }
 
+// gen dir list of .pdf files
+function render_ls()
+{?>
+	<? foreach(render_ls_files()  as $file): ?>
+	  <a href='?pdf=<? ee($file) ?>'><?ee($file)?></a><br/>
+	<? endforeach  ?>
+<?}
+
 // generate html form which regenerate .pdf
-function gen_gen_form($small_pdf_button = true)
-{
-	global $pdf_file_esc;
- 	echo "<form method='POST'>\n";
-    	echo "<input type=hidden name='pdf' value='$pdf_file_esc'/>\n";
-	if($small_pdf_button){ 
-		echo "<button type='submit' name='action' value='regen'>Generovat obrázky</button>\n";
-	}
-    	echo "<button type='submit' name='action' value='regen2'>Generovat obrázky z velkých .pdf</button>\n";
-  	echo "</form>\n";
-}
+function render_regen_form($pdf_file, $text, $small_pdf_button = true)
+{?>
+	<? ee($text)?>
+ 	<form method='POST'>
+    	<input type=hidden name='pdf' value=<?eea($pdf_file)?>/>
+	<?if ($small_pdf_button): ?>  
+		<button type='submit' name='action' value='regen'>Generovat obrázky</button>
+	<?endif?>
+    	<button type='submit' name='action' value='regen2'>Generovat obrázky z velkých .pdf</button>
+  	</form>
+<?}
 #######################################################################
 # main
 if( ! init() ) {
-	echo "neco se pdfelalo\n";
-	die();
+	die("neco se pdfelalo\n");
 }
 
 $au = isset($_COOKIE['opraf-au'])? $_COOKIE['opraf-au'] : 'anonym';
 
-?>
-<html>
-<head>
-<link rel="stylesheet" type="text/css" media="screen, projection" href="opraf.css" />
-<script src="opraf.js"></script>
-<title>opraf <? ee($pdf_file) ?></title>
-</head>
-<body> 
+render_html($pdf_file, $au);
 
-<h1>opraf <? ee($pdf_file) ?></h1>
-<i>klikni na chybu, napiš komentář</i>  |
-<a href="?action=ls">ls</a> |
-<a href="?action=doc">doc</a> |
-<hr/>
+function render_html($pdf_file, $au)
+{?><html>
+	<head>
+	<link rel="stylesheet" type="text/css" media="screen, projection" href="opraf.css" />
+	<script src="opraf.js"></script>
+	<title>opraf <? ee($pdf_file) ?></title>
+	</head>
+	<body> 
 
-<div id="commform-div">
-<form action='#' onsubmit='save_scroll(this)' id="commform" method="POST">
-  <input size="8" name="au" value="<? ee($au); ?>"/>
-  <input type=submit value="Oprav!"/>
-  <button type="button" onclick="close_commform()">Close</button>
-  <br/>
-  <textarea onkeypress="textarea_onkey(event);" id="commform-text" cols=40 rows=10 name="txt"></textarea>
-  <br/>
-  <input type="hidden" size="3" name="pdf" value="<? ee($pdf_file); ?>"/>
-  <input type="hidden" size="3" id="commform-x" name="x"/>
-  <input type="hidden" size="3" id="commform-y" name="y"/>
-  <input type="hidden" size="3" id="commform-img-id" name="img-id"/>
-  <input type="hidden" size="3" id="commform-id" name="id"/>
-  <input type="hidden" size="3" id="commform-action" name="action"/>
-  <input type="hidden" size="3" id="commform-action" name="scroll"/>
-</form>
-</div>
+	<h1>opraf <? ee($pdf_file) ?></h1>
+	<i>klikni na chybu, napiš komentář</i>  |
+	<a href="?action=ls">ls</a> |
+	<a href="?action=doc">doc</a> |
+	<hr/>
 
-<?php
-
-$action = get_get('action', 'none');
-if( $action == 'doc') {
-	gen_doc();
-}
-elseif( $pdf_file == null || $action == 'ls') {
-	gen_ls();
-}
-else{ 
-	gen_images();
-	gen_opravy();
-	gen_scroll();
-
-}
-
-?>
+	<div id="commform-div">
+	<form action='#' onsubmit='save_scroll(this)' id="commform" method="POST">
+	  <input size="8" name="au" value="<? ee($au); ?>"/>
+	  <input type=submit value="Oprav!"/>
+	  <button type="button" onclick="close_commform()">Close</button>
+	  <br/>
+	  <textarea onkeypress="textarea_onkey(event);" id="commform-text" cols=40 rows=10 name="txt"></textarea>
+	  <br/>
+	  <input type="hidden" size="3" name="pdf" value=<? eea($pdf_file); ?>/>
+	  <input type="hidden" size="3" id="commform-x" name="x"/>
+	  <input type="hidden" size="3" id="commform-y" name="y"/>
+	  <input type="hidden" size="3" id="commform-img-id" name="img-id"/>
+	  <input type="hidden" size="3" id="commform-id" name="id"/>
+	  <input type="hidden" size="3" id="commform-action" name="action"/>
+	  <input type="hidden" size="3" id="commform-action" name="scroll"/>
+	</form>
+	</div>
+	<? render_content() ?>
 </body> </html>
+<?}
+
+function render_content()
+{
+	global $pdf_file;
+	$action = get_get('action', 'none');
+	if( $action == 'doc') {
+		render_doc();
+	}
+	elseif( $pdf_file == null || $action == 'ls') {
+		render_ls();
+	}
+	else{ 
+		render_images();
+		render_opravy();
+
+		render_scroll(get_get('scroll'));
+
+	}
+}
