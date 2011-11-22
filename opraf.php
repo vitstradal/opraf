@@ -319,12 +319,13 @@ function do_done($done)
 {
 
 	global $db;
+	#echo "do_done: $done.";
 	$new_status = $done ? 'DONE' : 'NONE';
 	$id = substr(get_post('id'), 2);
 	$sql = "UPDATE opravy SET status = " . $db->quote($new_status) .
 		"  WHERE id = " . $db->quote($id);
 	$rc = $db->exec($sql);
-	//die("do_done($sql)$done.");
+	#die("do_done($sql)$done:$rc");
 	if( $rc == 0 ) {
 		#print_r($db->errorInfo());
 		ee("cannt update from db. '$sql'. "); 
@@ -582,12 +583,12 @@ function render_statistika($pre_msg, $text)
 
 function render_oprava($pdf_file, $id, $next_id, $pdf_file, $row, $icons)
 {?>
-	<? if( $row['st'] == 'DONE' ) : ?>
-	  <div onclick='img_click(this,event)' id='<?ee($id)?>-pointer' class='pointer-done'></div>
-	  <div name=<?eea($id)?> id=<?eea($id)?> class='box-done' onmouseover='box_onmouseover(this,1)' onmouseout='box_onmouseout(this,1)' >
+	<? if( $row['status'] == 'DONE' ) : ?>
+	<div onclick='img_click(this,event)' id='<?ee($id)?>-pointer' class='pointer-done'></div>
+	<div name=<?eea($id)?> id=<?eea($id)?> class='box-done' onmouseover='box_onmouseover(this,1)' onmouseout='box_onmouseout(this,1)' >
 	<? else: ?>
-	  <div onclick='img_click(this,event)' id='<?ee($id)?>-pointer' class='pointer'></div>
-	  <div name=<?eea($id)?> id=<?eea($id)?> class='box' onmouseover='box_onmouseover(this,0)' onmouseout='box_onmouseout(this,0)' >
+	<div onclick='img_click(this,event)' id='<?ee($id)?>-pointer' class='pointer'></div>
+	<div name=<?eea($id)?> id=<?eea($id)?> class='box' onmouseover='box_onmouseover(this,0)' onmouseout='box_onmouseout(this,0)' >
 	<? endif ?> 
 
 	<span id='<?ee($id)?>-text'><?ee($row, 'txt')?></span>
@@ -598,15 +599,17 @@ function render_oprava($pdf_file, $id, $next_id, $pdf_file, $row, $icons)
 	<input type='hidden' name='id' value=<?eea($id)?>>
 	<input type='hidden' name='scroll'>
 	<button type='submit' name='action' value='del' title='Smaž opravu'><img src=<?eea($icons,'dele')?>/></button>
-	<? if( $st == 'DONE' ) : ?>
-	  <button type='submit' name='action' value='undone' title='Označ jako neopravené'><img src=<?eea($icons,'undo')?>/></button>
+
+	<? if( $row['status'] == 'DONE' ) : ?>
+	<button type='submit' name='action' value='undone' title='Označ jako neopravené'><img src=<?eea($icons,'undo')?>/></button>
 	<? else: ?>
-	  <button type='submit' name='action' value='done' title='Označ jako opravené'><img src=<?eea($icons,'done')?>/></button>
+	<button type='submit' name='action' value='done' title='Označ jako opravené'><img src=<?eea($icons,'done')?>/></button>
 	<? endif ?> 
+
 	<button type='button' onclick='box_edit(this);' title='Oprav opravu'><img src=<?eea($icons, 'edit')?>/></button>
 	<a href='#<?ee($id)?>'><button type='button' title='Link na opravu'><img src=<?eea($icons, 'link')?>/></button></a>
 	<? if( $next_id ) : ?>
-	  <a href='#$next_id'><img title='Další oprava' src=<?eea($icons, 'next')?>/></button></a>
+	  <a href='#<?ee($next_id)?>'><img title='Další oprava' src=<?eea($icons, 'next')?>/></button></a>
 	<? else: ?>
 	   <img title='Toto je poslední oprava' src=<?eea($icons, 'nextgr')?>/>
 	<? endif ?> 
@@ -711,7 +714,7 @@ function render_html($pdf_file, $au)
 	<form action='#' onsubmit='save_scroll(this)' id="commform" method="POST">
 	  <input size="8" name="au" value="<? ee($au); ?>"/>
 	  <input type=submit value="Oprav!"/>
-	  <button type="button" onclick="close_commform()">Close</button>
+	  <button type="button" onclick="close_commform()">Zavřít</button>
 	  <br/>
 	  <textarea onkeypress="textarea_onkey(event);" id="commform-text" cols=40 rows=10 name="txt"></textarea>
 	  <br/>
