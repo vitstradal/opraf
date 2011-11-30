@@ -227,7 +227,7 @@ function regen_pdf_img()
 		die('');
 	}
 	$img_path = "$img_dir/$pdf_base.png";
-	$cmd = "convert -density 180x180 \"$pdf_path\" \"$img_path\"";
+	$cmd = "convert  -density 180x180 -geometry 1024x1448 \"$pdf_path\" \"$img_path\"";
 	if( $rc != 0) { 
 		render_regen_form($pdf_file, "Nepovedlo se spusit '$cmd',Sorry... zkus:", false);
 		exit(0);
@@ -456,7 +456,7 @@ function render_images()
 }
 function render_image($img_path, $id, $w, $h)
 {?>
-	 <div class='imgdiv'><img width=<?eea($w)?> height=<?eea($h)?> onclick='img_click(this,event)' id=<?eea($id)?> src=<?eea($img_path)?>/></div><hr/>
+	 <div class='imgdiv'><img width=<?eeq($w)?> height=<?eeq($h)?> onclick='img_click(this,event)' id=<?eeq($id)?> src=<?eeq($img_path)?>/></div><hr/>
 <?}
 
 // check if .pdf is newer than first img
@@ -486,7 +486,7 @@ function render_check_update($pdf_base, $img_first)
  * silly template system
  * 
  * a) output is in render_*()
- * b) thruu ee() eea() and ejs() 
+ * b) thruu ee() eeq() and ejs() 
  */
 
 // escape to html
@@ -504,11 +504,11 @@ function ee($txt, $id = null)
 	}
 	echo escape($txt);
 }
-// echo html-escaped attribute
-function eea($txt, $id = null) 
+// echo html-escaped quote
+function eeq($txt, $id = null) 
 {
 	if( $id !== null ) { 
-		echo "'" . escape($txt[$id]) . "'";
+		echo '"' . escape($txt[$id]) . '"';
 		return;
 	}
 	echo "'" . escape($txt, $id) . "'";
@@ -539,10 +539,10 @@ function render_opravy()
 	if( count($opravy) > 0 ) {
 		arsort(&$statistika);
 
-		$msg =  "Děkujeme opravovatelům:";
+		$msg =  "Děkujeme opravovatelům: ";
 
 		if( count($statistika) == 1 ) {
-			$msg =  "Děkujeme:";
+			$msg =  "Děkujeme: ";
 		}
 		$sep ='';
 		$text ='';
@@ -577,7 +577,7 @@ function render_opravy_script($imgs)
 
 function render_statistika($pre_msg, $text)
 {?>
-	<?ee($pre_msg)?><?ee($msg)?>
+	<?ee($pre_msg)?><?ee($text)?>
 	<hr>
 <?}
 
@@ -585,33 +585,33 @@ function render_oprava($pdf_file, $id, $next_id, $pdf_file, $row, $icons)
 {?>
 	<? if( $row['status'] == 'DONE' ) : ?>
 	<div onclick='img_click(this,event)' id='<?ee($id)?>-pointer' class='pointer-done'></div>
-	<div name=<?eea($id)?> id=<?eea($id)?> class='box-done' onmouseover='box_onmouseover(this,1)' onmouseout='box_onmouseout(this,1)' >
+	<div name=<?eeq($id)?> id=<?eeq($id)?> class='box-done' onmouseover='box_onmouseover(this,1)' onmouseout='box_onmouseout(this,1)' >
 	<? else: ?>
 	<div onclick='img_click(this,event)' id='<?ee($id)?>-pointer' class='pointer'></div>
-	<div name=<?eea($id)?> id=<?eea($id)?> class='box' onmouseover='box_onmouseover(this,0)' onmouseout='box_onmouseout(this,0)' >
+	<div name=<?eeq($id)?> id=<?eeq($id)?> class='box' onmouseover='box_onmouseover(this,0)' onmouseout='box_onmouseout(this,0)' >
 	<? endif ?> 
 
 	<span id='<?ee($id)?>-text'><?ee($row, 'txt')?></span>
 	<br/><i>au:<?ee($row, 'au')?></i>
 	<div class='float-right'>
 	<form  action='#' onsubmit='save_scroll(this)' method='POST'>
-	<input type='hidden' name='pdf' value=<?eea($pdf_file)?>>
-	<input type='hidden' name='id' value=<?eea($id)?>>
+	<input type='hidden' name='pdf' value=<?eeq($pdf_file)?>>
+	<input type='hidden' name='id' value=<?eeq($id)?>>
 	<input type='hidden' name='scroll'>
-	<button type='submit' name='action' value='del' title='Smaž opravu'><img src=<?eea($icons,'dele')?>/></button>
+	<button type='submit' name='action' value='del' title='Smaž opravu'><img src=<?eeq($icons,'dele')?>/></button>
 
 	<? if( $row['status'] == 'DONE' ) : ?>
-	<button type='submit' name='action' value='undone' title='Označ jako neopravené'><img src=<?eea($icons,'undo')?>/></button>
+	<button type='submit' name='action' value='undone' title='Označ jako neopravené'><img src=<?eeq($icons,'undo')?>/></button>
 	<? else: ?>
-	<button type='submit' name='action' value='done' title='Označ jako opravené'><img src=<?eea($icons,'done')?>/></button>
+	<button type='submit' name='action' value='done' title='Označ jako opravené'><img src=<?eeq($icons,'done')?>/></button>
 	<? endif ?> 
 
-	<button type='button' onclick='box_edit(this);' title='Oprav opravu'><img src=<?eea($icons, 'edit')?>/></button>
-	<a href='#<?ee($id)?>'><button type='button' title='Link na opravu'><img src=<?eea($icons, 'link')?>/></button></a>
+	<button type='button' onclick='box_edit(this);' title='Oprav opravu'><img src=<?eeq($icons, 'edit')?>/></button>
+	<a href='#<?ee($id)?>'><button type='button' title='Link na opravu'><img src=<?eeq($icons, 'link')?>/></button></a>
 	<? if( $next_id ) : ?>
-	  <a href='#<?ee($next_id)?>'><img title='Další oprava' src=<?eea($icons, 'next')?>/></button></a>
+	  <a href='#<?ee($next_id)?>'><img title='Další oprava' src=<?eeq($icons, 'next')?>/></button></a>
 	<? else: ?>
-	   <img title='Toto je poslední oprava' src=<?eea($icons, 'nextgr')?>/>
+	   <img title='Toto je poslední oprava' src=<?eeq($icons, 'nextgr')?>/>
 	<? endif ?> 
 	</form>
 	</div>
@@ -678,7 +678,7 @@ function render_regen_form($pdf_file, $text, $small_pdf_button = true)
 {?>
 	<? ee($text)?>
  	<form method='POST'>
-    	<input type=hidden name='pdf' value=<?eea($pdf_file)?>/>
+    	<input type=hidden name='pdf' value=<?eeq($pdf_file)?>/>
 	<?if ($small_pdf_button): ?>  
 		<button type='submit' name='action' value='regen'>Generovat obrázky</button>
 	<?endif?>
@@ -718,7 +718,7 @@ function render_html($pdf_file, $au)
 	  <br/>
 	  <textarea onkeypress="textarea_onkey(event);" id="commform-text" cols=40 rows=10 name="txt"></textarea>
 	  <br/>
-	  <input type="hidden" size="3" name="pdf" value=<? eea($pdf_file); ?>/>
+	  <input type="hidden" size="3" name="pdf" value=<? eeq($pdf_file); ?>/>
 	  <input type="hidden" size="3" id="commform-x" name="x"/>
 	  <input type="hidden" size="3" id="commform-y" name="y"/>
 	  <input type="hidden" size="3" id="commform-img-id" name="img-id"/>
