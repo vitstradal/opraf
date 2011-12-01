@@ -272,7 +272,7 @@ function regen2_pdf_img()
 	while(true) { 
 		$img_path = "$img_dir/$pdf_base-$pageno.png";
 		$pdf_path_page = "${pdf_path}[$pageno]";
-		$cmd = "convert -density 180x180 \"$pdf_path_page\" \"$img_path\"";
+		$cmd = "convert -density 180x180 -geometry 1024x1448  \"$pdf_path_page\" \"$img_path\"";
 		ee("$img_path\n");
 		flush();
 		system($cmd, $rc);
@@ -585,37 +585,38 @@ function render_oprava($pdf_file, $id, $next_id, $pdf_file, $row, $icons)
 {?>
 	<? if( $row['status'] == 'DONE' ) : ?>
 	<div onclick='img_click(this,event)' id='<?ee($id)?>-pointer' class='pointer-done'></div>
-	<div name=<?eeq($id)?> id=<?eeq($id)?> class='box-done' onmouseover='box_onmouseover(this,1)' onmouseout='box_onmouseout(this,1)' >
-	<? else: ?>
+	 <div name=<?eeq($id)?> id=<?eeq($id)?> class='box-done' onmouseover='box_onmouseover(this,1)' onmouseout='box_onmouseout(this,1)' >
+	 <? else: ?>
 	<div onclick='img_click(this,event)' id='<?ee($id)?>-pointer' class='pointer'></div>
-	<div name=<?eeq($id)?> id=<?eeq($id)?> class='box' onmouseover='box_onmouseover(this,0)' onmouseout='box_onmouseout(this,0)' >
-	<? endif ?> 
-
-	<span id='<?ee($id)?>-text'><?ee($row, 'txt')?></span>
-	<br/><i>au:<?ee($row, 'au')?></i>
-	<div class='float-right'>
-	<form  action='#' onsubmit='save_scroll(this)' method='POST'>
-	<input type='hidden' name='pdf' value=<?eeq($pdf_file)?>>
-	<input type='hidden' name='id' value=<?eeq($id)?>>
-	<input type='hidden' name='scroll'>
-	<button type='submit' name='action' value='del' title='Smaž opravu'><img src=<?eeq($icons,'dele')?>/></button>
-
-	<? if( $row['status'] == 'DONE' ) : ?>
-	<button type='submit' name='action' value='undone' title='Označ jako neopravené'><img src=<?eeq($icons,'undo')?>/></button>
-	<? else: ?>
-	<button type='submit' name='action' value='done' title='Označ jako opravené'><img src=<?eeq($icons,'done')?>/></button>
-	<? endif ?> 
-
-	<button type='button' onclick='box_edit(this);' title='Oprav opravu'><img src=<?eeq($icons, 'edit')?>/></button>
-	<a href='#<?ee($id)?>'><button type='button' title='Link na opravu'><img src=<?eeq($icons, 'link')?>/></button></a>
-	<? if( $next_id ) : ?>
-	  <a href='#<?ee($next_id)?>'><img title='Další oprava' src=<?eeq($icons, 'next')?>/></button></a>
-	<? else: ?>
-	   <img title='Toto je poslední oprava' src=<?eeq($icons, 'nextgr')?>/>
-	<? endif ?> 
-	</form>
-	</div>
-	</div>
+	 <div name=<?eeq($id)?> id=<?eeq($id)?> class='box' onmouseover='box_onmouseover(this,0)' onmouseout='box_onmouseout(this,0)' >
+	 <? endif ?> 
+         
+	 <b><?ee($row, 'au')?></b>
+	 <div class='float-right'>
+	  <form  action='#' onsubmit='save_scroll(this)' method='POST'>
+	   <input type='hidden' name='pdf' value=<?eeq($pdf_file)?>>
+	   <input type='hidden' name='id' value=<?eeq($id)?>>
+	   <input type='hidden' name='scroll'>
+	   <button type='submit' name='action' value='del' title='Smaž opravu'><img src=<?eeq($icons,'dele')?>/></button>
+         
+	   <? if( $row['status'] == 'DONE' ) : ?>
+	   <button type='submit' name='action' value='undone' title='Označ jako neopravené'><img src=<?eeq($icons,'undo')?>/></button>
+	   <? else: ?>
+	   <button type='submit' name='action' value='done' title='Označ jako opravené'><img src=<?eeq($icons,'done')?>/></button>
+	   <? endif ?> 
+         
+	   <button type='button' onclick='box_edit(this);' title='Oprav opravu'><img src=<?eeq($icons, 'edit')?>/></button>
+	   <a href='#<?ee($id)?>'><button type='button' title='Link na opravu'><img src=<?eeq($icons, 'link')?>/></button></a>
+	   <? if( $next_id ) : ?>
+	    <a href='#<?ee($next_id)?>'><img title='Další oprava' src=<?eeq($icons, 'next')?>/></button></a>
+	   <? else: ?>
+	     <img title='Toto je poslední oprava' src=<?eeq($icons, 'nextgr')?>/>
+	   <? endif ?> 
+	  </form>
+	 </div> <?/* float-right*/?>
+	 <div id='<?ee($id)?>-text'><?ee($row, 'txt')?></div>
+         
+	</div><?/* box-done|box */?>
 <?}
 
 // prvky jsou radky ze selecty * from opravy
