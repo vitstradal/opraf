@@ -182,6 +182,9 @@ function do_post()
 	if( false !== strpos($action, $icons['dele'])) { $action = 'del';}
 
 	switch($action) {
+	case 'delall':
+		do_delall();
+		break;
 	case 'del':
 		do_del();
 		break;
@@ -311,6 +314,26 @@ function do_del()
 		#print_r($db->errorInfo());
 		ee("cannt del from db.'$sql'");
 		die('');
+	}
+}
+// del correction
+function do_delall()
+{
+	global $db;
+	$pdf = get_post('pdf');
+	$yes = get_post('yes');
+
+	if( $yes == 'on' ) { 
+		$sql = "DELETE FROM opravy WHERE pdf = " . $db->quote($pdf);
+		$rc = $db->exec($sql);
+		if( $rc == 0 ) {
+			#print_r($db->errorInfo());
+			ee("cannt del from db.'$sql'");
+			die('');
+		}
+	}
+	else {
+		die("cannt del all comments to '$pdf', check agreement checkbox!");
 	}
 }
 
@@ -453,7 +476,20 @@ function render_images()
 		$id = "img-$idx";
 		render_image($img_path, $id, $w, $h);
 	}
+	render_delall($pdf_file);
 }
+function render_delall($pdf_file)
+{?>
+
+	<form method="post">
+	  <input type='hidden' name='action' value='delall'/>
+	  <input type='submit' value='Smazat všechny komentáře'/>
+	  <input type='hidden' name='pdf' value=<?eeq($pdf_file)?>/>
+	  <input type='checkbox' name='yes'/> Souhlasim se smazáním všech kometářů
+	</form>
+	<hr/>
+
+<?}
 function render_image($img_path, $id, $w, $h)
 {?>
 	 <div class='imgdiv'><img width=<?eeq($w)?> height=<?eeq($h)?> onclick='img_click(this,event)' id=<?eeq($id)?> src=<?eeq($img_path)?>/></div><hr/>
@@ -593,7 +629,7 @@ function render_oprava($pdf_file, $id, $next_id, $pdf_file, $row, $icons)
          
 	 <b><?ee($row, 'au')?></b>
 	 <div class='float-right'>
-	  <form  action='#' onsubmit='save_scroll(this)' method='POST'>
+	  <form  action='' onsubmit='save_scroll(this)' method='POST'>
 	   <input type='hidden' name='pdf' value=<?eeq($pdf_file)?>>
 	   <input type='hidden' name='id' value=<?eeq($id)?>>
 	   <input type='hidden' name='scroll'>
@@ -712,7 +748,7 @@ function render_html($pdf_file, $au)
 	<hr/>
 
 	<div id="commform-div">
-	<form action='#' onsubmit='save_scroll(this)' id="commform" method="POST">
+	<form action='' onsubmit='save_scroll(this)' id="commform" method="POST">
 	  <input size="8" name="au" value="<? ee($au); ?>"/>
 	  <input type=submit value="Oprav!"/>
 	  <button type="button" onclick="close_commform()">Zavřít</button>

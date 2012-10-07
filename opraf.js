@@ -73,6 +73,7 @@ function textarea_onkey(ev)
 		var form = document.getElementById('commform');
 		if( form ) { 
 			save_scroll(form);
+			//form.action ='';
 			form.submit();
 		}
 		return true;
