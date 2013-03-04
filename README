@@ -1,4 +1,4 @@
-INFRO
+INFO
 
 Web pdf anotator. Creates images from pdf, and allow add comment to chosen places. Comments are displayed on left side (word like).
 
@@ -6,9 +6,9 @@ https://github.com/vitstradal/opraf
 
 INSTALL
 
-/*
- * opraf.db:
- *
+$ wget 
+
+
 $ sqlite3 db/opaf.db
 
 CREATE TABLE opravy(
