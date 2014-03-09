@@ -573,7 +573,7 @@ function render_opravy()
 		$statistika[$row['au']]++;
 	}
 	if( count($opravy) > 0 ) {
-		arsort(&$statistika);
+		arsort($statistika);
 
 		$msg =  "Děkujeme opravovatelům: ";
 
