@@ -216,7 +216,10 @@ function regen_pdf_img()
 	global $pdf_file;
 	global $pdf_dir;
 	global $img_dir;
+
+        render_short_begin();
 	ee("<pre>Generuji obrázky, čekej...\n");
+
 	flush();
 	assert(preg_match('/^[-a-z_A-Z0-9\.]+$/', $pdf_file));
 
@@ -236,6 +239,7 @@ function regen_pdf_img()
 		exit(0);
 	}
 	render_regen_pdf_img_done($cmd, $pdf_file);
+        render_short_end();
 	die('');
 
 }
@@ -251,6 +255,13 @@ function render_regen_pdf_img_init()
 	<pre>Generuji obrázky, čekej...
 <?php }
 
+function render_short_begin() {
+        echo("<html><head><meta http-equiv='Content-Type' content='text/html; charset=utf-8'></head><body>");
+}
+function render_short_end() {
+        echo("</body></html>");
+}
+
 function regen2_pdf_img()
 {
 	global $pdf_file;
@@ -259,6 +270,8 @@ function regen2_pdf_img()
 
 	get_pdf_file_post();
 	render_regen_pdf_img_init();
+        render_short_begin();
+
 	flush();
 	assert(preg_match('/^[-a-z_A-Z0-9\.]+$/', $pdf_file));
 
@@ -281,6 +294,7 @@ function regen2_pdf_img()
 		system($cmd, $rc);
 		if( $rc != 0) { 
 			render_regen_pdf_img_done($cmd, $pdf_file);
+                        render_short_end();
 			die("");
 		}
 		$pageno++;
