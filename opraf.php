@@ -628,7 +628,7 @@ function render_oprava($pdf_file, $id, $next_id, $pdf_file, $row, $icons)
 	   <input type='hidden' name='pdf' value=<?php eeq($pdf_file)?>>
 	   <input type='hidden' name='id' value=<?php eeq($id)?>>
 	   <input type='hidden' name='scroll'>
-	   <button type='submit' name='action' value='del' title='Smaž opravu'><img src=<?php eeq($icons,'dele')?>/></button>
+	   <button type='submit' name='action' value='del' title='Smaž opravu' onclick='return confirm("Opravdu smazat korekturu?");'><img src=<?php eeq($icons,'dele')?>/></button>
          
 	   <?php  if( $row['status'] == 'DONE' ) : ?>
 	   <button type='submit' name='action' value='undone' title='Označ jako neopravené'><img src=<?php eeq($icons,'undo')?>/></button>
