@@ -113,21 +113,27 @@ function img_click(element, ev) {
 	return show_form(img_id, dx, dy, '', '', '', '');
 }
 
-// show comment form, when 'edit' button pressed
-function box_edit(button) 
+// show comment form, when 'edit' or 'comment' button pressed
+function box_edit(button, action)
 {
 	var divbox = button.parentNode.parentNode.parentNode;
 	var id = divbox.id;
 	//alert("id: " +  id);
 	var divpointer = document.getElementById(divbox.id + '-pointer');
-	var text_el = document.getElementById(divbox.id + '-text');
-	var text = text_el.innerHTML.unescapeHTML();
+
+	var text;
+	if (action == 'update') {
+		var text_el = document.getElementById(divbox.id + '-text');
+		text = text_el.innerHTML.unescapeHTML();
+	} else {
+		text = '';
+	}
 
 	var dx = parseInt(divpointer.style.left);
 	var dy = parseInt(divpointer.style.top);
 	//alert('not yet 2:' + text + text_el); // + divpointer.style.top "x" + divpo );
 	id = id.substring(2);
-	return show_form(divbox.img_id, dx, dy, id, text, 'update');
+	return show_form(divbox.img_id, dx, dy, id, text, action);
 
 }
 

@@ -51,6 +51,7 @@ $icons = array(
 	'link' => 'imgs/link.png',
 	'next' => 'imgs/next.png',
 	'nextgr' => 'imgs/next-gr.png',
+	'comment' => 'imgs/comment.png',
 	);
 
 # database hanlder
@@ -169,6 +170,9 @@ function do_post()
 		break;
 	case 'update':
 		do_update_correction();
+		break;
+	case 'comment':
+		do_insert_comment();
 		break;
 	default:
 		do_insert_correction();
@@ -417,6 +421,35 @@ function do_insert_correction()
 	}
 }
 
+// insert new comment into the database
+function do_insert_comment()
+{
+	global $db;
+
+	$oprava_id = get_post('id', null);
+	$text = get_post('txt', 'notxt');
+	$au = get_post('au', 'anonym');
+
+	setcookie('author', $au);
+
+	if( $oprava_id === null ){
+		return;
+	}
+
+	$sql = 'INSERT INTO komentare (oprava_id, text, au) VALUES (' .
+			$db->quote($oprava_id) . ", " .
+			$db->quote($text) . ", " .
+			$db->quote($au) . ");";
+
+	$rc = $db->exec($sql);
+	if( $rc == 0 ) {
+		#print_r($db->errorInfo());
+		ee("cannot update db. '$sql'");
+		die('');
+	}
+}
+
+
 // rid off .pdf
 function strip_ext($file)
 {
@@ -591,7 +624,12 @@ function render_opravy()
 		$id = 'op' . $row['id'];
 		$img_id = $row['img_id'];
 		$imgs[$img_id][] = array($id, (int)$row['x'], (int)$row['y']);
-		render_oprava($pdf_file, $id, $next_id, $pdf_file, $row, $icons);
+
+		// get comments for the correction
+		$c_sql = "SELECT * FROM komentare WHERE oprava_id = " . $db->quote($row['id']) . ";";
+		$comments = $db->query($c_sql);
+
+		render_oprava($pdf_file, $id, $next_id, $pdf_file, $row, $icons, $comments);
 	}
 	render_opravy_script($imgs);
 }
@@ -612,7 +650,7 @@ function render_statistika($pre_msg, $text)
 	<hr>
 <?php }
 
-function render_oprava($pdf_file, $id, $next_id, $pdf_file, $row, $icons)
+function render_oprava($pdf_file, $id, $next_id, $pdf_file, $row, $icons, $comments)
 {?>
 	<?php  if( $row['status'] == 'DONE' ) : ?>
 	<div onclick='img_click(this,event)' id='<?php ee($id)?>-pointer' class='pointer-done'></div>
@@ -636,7 +674,8 @@ function render_oprava($pdf_file, $id, $next_id, $pdf_file, $row, $icons)
 	   <button type='submit' name='action' value='done' title='Označ jako opravené'><img src=<?php eeq($icons,'done')?>/></button>
 	   <?php  endif ?> 
          
-	   <button type='button' onclick='box_edit(this);' title='Oprav opravu'><img src=<?php eeq($icons, 'edit')?>/></button>
+	   <button type='button' onclick='box_edit(this, "update");' title='Oprav opravu'><img src=<?php eeq($icons, 'edit')?>/></button>
+	   <button type='button' onclick='box_edit(this, "comment");' title='Komentovat'><img src=<?php eeq($icons, 'comment')?>/></button>
 	   <a href='#<?php ee($id)?>'><button type='button' title='Link na opravu'><img src=<?php eeq($icons, 'link')?>/></button></a>
 	   <?php  if( $next_id ) : ?>
 	    <a href='#<?php ee($next_id)?>'><img title='Další oprava' src=<?php eeq($icons, 'next')?>/></button></a>
@@ -645,8 +684,13 @@ function render_oprava($pdf_file, $id, $next_id, $pdf_file, $row, $icons)
 	   <?php  endif ?> 
 	  </form>
 	 </div> <?php /* float-right*/?>
-	 <div id='<?php ee($id)?>-text'><?php ee($row, 'txt')?></div>
-         
+	 <div id='<?php ee($id)?>-text'><?php ee($row, 'txt'); ?></div>
+	 <?php
+		foreach ($comments as $c) {
+			echo "<hr><div class='comment'><b>" . $c["au"] . "</b><br>" .
+				 "" . $c["text"] . "</div>";
+		}
+	 ?>
 	</div><?php /* box-done|box */?>
 <?php }
 
@@ -735,7 +779,7 @@ render_html($pdf_file, $au);
 function render_html($pdf_file, $au)
 {?><html>
 	<head>
-        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 	<link rel="stylesheet" type="text/css" media="screen, projection" href="opraf.css" />
 	<script src="opraf.js"></script>
 	<title>Korektury <?php  ee($pdf_file) ?></title>

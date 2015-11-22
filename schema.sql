@@ -8,3 +8,11 @@ CREATE TABLE opravy(
 	x INTEGER,
 	y INTEGER
 );
+
+CREATE TABLE komentare(
+	id INTEGER PRIMARY KEY,
+	oprava_id INTEGER,
+	text TEXT,
+	au TEXT,
+	FOREIGN KEY(oprava_id) REFERENCES opravy(id)
+);

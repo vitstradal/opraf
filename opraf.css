@@ -101,3 +101,7 @@ form {
 .box-done button:hover {
 	border: 1px solid black;
 }
+
+.comment hr {
+	height: 0px;
+}
