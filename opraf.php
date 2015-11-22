@@ -237,7 +237,7 @@ function render_regen_pdf_img_init()
 <?php }
 
 function render_short_begin() {
-        echo("<html><head><meta http-equiv='Content-Type' content='text/html; charset=iso-8859-2'></head><body>");
+        echo("<html><head><meta http-equiv='Content-Type' content='text/html; charset=utf-8'></head><body>");
 }
 function render_short_end() {
         echo("</body></html>");
@@ -735,7 +735,7 @@ render_html($pdf_file, $au);
 function render_html($pdf_file, $au)
 {?><html>
 	<head>
-        <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-2">
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 	<link rel="stylesheet" type="text/css" media="screen, projection" href="opraf.css" />
 	<script src="opraf.js"></script>
 	<title>Korektury <?php  ee($pdf_file) ?></title>
