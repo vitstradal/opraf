@@ -3,13 +3,13 @@
  * configuration
  */
 # where pdf files lives  
-$pdf_dir = '..';
+$pdf_dir = 'pdf';
 
 # where to store .png (must have write access)
-$img_dir = 'tmp';
+$img_dir = 'png';
 
 # where it is on web
-$img_uri = 'tmp';
+$img_uri = 'png';
 
 /*
  * end of configuration

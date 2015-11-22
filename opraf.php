@@ -1,75 +1,46 @@
 <?php
+
+// django authentication
+require_once("../pmwiki/local/django.php");
+django_auth("/korektury");
+
+// configuration file
 require 'config.php';
 
 function get_help_doc()
 {
 	return  <<<EOL
-Bastl pro přidávání poznámek k .pdf souborům v adresáři /provedouci/.
+Nástroj pro korektury převzatý od Pikomatu.
 
-Před začátkem nebo pokud se .pdf aktalizovalo, je třeba vygenerovat obrázky
-(tlačítko generuj obrázky).
+Základní používání
+* Odkaz ls ukáže seznam všech PDF dostupných pro korektury.
+  Soubory jsou řazeny dle data nahrání do systému, nejnovější nahoře.
+* Odkaz help zobrazí tuto nápovědu.
 
-<a href="?action=ls">ls</a> ukáže seznam všech .pdf v /provedouci/.
+* Po vybrání příslušného souboru opravu provedete kliknutím do textu
+  a zadáním opravy. Ctrl+Enter odešle formulář s korekturou.
+* Korektury (i cizí!) lze mazat, upravovat, či označit jako opravené
+  (viz tlačítka u korektury).
+* Pokud není předvyplněno správné jméno (mělo by být), opravte ho.
 
-Oprava se provede kliknutím do textu, a zadání opravy.
-Ctrl-Enter odešle formulář.
-Zadejte svoji značku nebo jméno, ať v tom není zmatek. 
+Přidání nového PDF
+* Stačí nahrát soubor do /akce/MaM/WWW/opraf/pdf a následně ho normálním
+  způsobem zobrazit. Místo zobrazení souboru se objeví tlačítko na
+  generování obrázků.
 
-Poznámky se dají mazat, nebo označit jako zpracované (tlačítka del, done).
+Autorem nástroje je Viťas, vitas(šnek)matfyz(tečka)cz
+a zdrojové kódy jsou dostupné na GitHubu na adrese
+https://github.com/vitstradal/opraf.
 
-Dotazy, požadavky:
+Úpravy pro potřeby M&M provedl Kuba, na něj můžete
+směřovat i případné otázky.
 
-au: vitas(šnek)matfyz(tečka)cz
-
-INSTALACE a CONFIGURACE (nezajimavé):
-
-opraf/opraf.{php,js,css}
-db/opraf.db sqlite databaze ve které jsou poznámky
-tmp/ zde jsou obrázky stránek pdf.
-imgs/ ikony.
-db/ tmp/ musi mít zápis pro oth (nebo pro www-data).
-
-configurace pomocí editace opraf.php:
-
-# where pdf files lives  
-\$pdf_dir = '..';
-
-# where to store .png (must have write access)
-\$img_dir = 'tmp';
-
-# where it is on web
-\$img_uri = 'tmp';
-
-# database connection string
-\$db_conn = "sqlite:db/opraf.db";
 
 BUGS
-
 * misto kliknuti a pak pointer neni to same (nekolik pixelu mimo)
-* design error: kolize tmp obrazku: letak.pdf (vice str) a letak-1.pdf (1 stranka)
+* design error: kolize png obrazku: letak.pdf (vice str) a letak-1.pdf (1 stranka)
 * CSRF, kriminalnici jsou vsude.
 * jak resit aktualizovani pdf? nejlepe jinym nazvem .pdf
-
-* na velkých .pdf (ročenka) se convert vysype. taky na fonts.pdf. trosku fixed
-* znaky html se pri preeditaci preescapovavaji. fixed
-* nefunguje v IE8, (testovano FF7, Op?, Chr14, adroid-browser), snad fixed (IE tfujtajbl!)
-* kdyz se zmensi pocet stranek, nebo zvetsi z jedne stranky na vic: hodito vice stranek nez se ocekava, fixed
-* pridavani komentaru v dolni polovine stranky, skoci na zacatek stranky. fixed
-* nejde kliknout na místa která jsou 'uvnitř' vodící čáry. fixed.
-* kdyz je .pdf kratke jen na jednu stranku, tak convert vygeneruje obrazek bez cisla,
-  cele to nefunguje.  fixed.
-* kdyz je hodne komentaru u konce stranky, tak prekryvaji komentare na dalsi strance, asi fixed.
-
-WISH LIST -- Nenaplněná přání
-
-* permalinky na opravy.
-
-
-* velke soubory .pdf, done by hack,
-* zmena velikosti, trosku done
-* editovat existujicí komentar, done
-* po najeti na opravu, ztucnit pointer, done
-* o editaci, nebo zadání, zůstat na stejnem místě, done
 
 EOL;
 } /* get_help_doc() */
@@ -217,8 +188,8 @@ function regen_pdf_img()
 	global $pdf_dir;
 	global $img_dir;
 
-        render_short_begin();
-	ee("<pre>Generuji obrázky, čekej...\n");
+	render_short_begin();
+	echo "<pre>Generuji obrázky, čekej...\n";
 
 	flush();
 	assert(preg_match('/^[-a-z_A-Z0-9\.]+$/', $pdf_file));
@@ -229,18 +200,32 @@ function regen_pdf_img()
 	$pdf_path = "$pdf_dir/$pdf_file";
 
 	if( !is_file($pdf_path) ) { 
-		ee("file ($pdf_path)  not exists");
+		ee("CHYBA: Soubor ($pdf_path) neexistuje.");
 		die('');
 	}
+
 	$img_path = "$img_dir/$pdf_base.png";
-	$cmd = "convert  -density 180x180 -geometry 1024x1448 \"$pdf_path\" \"$img_path\"";
+	$cmd = "PATH=/usr/bin convert -density 180x180 -geometry 1024x1448 \"$pdf_path\" \"$img_path\"";
+	ee("\t$cmd\n");
+	system($cmd, $rc);
 	if( $rc != 0) { 
-		render_regen_form($pdf_file, "Nepovedlo se spusit '$cmd',Sorry... zkus:", false);
+		render_regen_form($pdf_file, "CHYBA: Prikaz vratil chybovy kod $rc. Zkus:", false);
 		exit(0);
 	}
-	render_regen_pdf_img_done($cmd, $pdf_file);
-        render_short_end();
-	die('');
+
+	$cmd = "chmod 664 \"$img_dir/$pdf_base\"*";
+	ee("\t$cmd\n");
+	system($cmd, $rc);
+	if($rc != 0){
+		echo "\n CHYBA: Vygenerovanym souborum se nepodarilo nastavit potrebna prava.";
+		exit(0);
+	}
+	
+	echo "hotovo.\n</pre><br>";
+	echo "Pokračovaní <a href=\"?pdf=".escape($pdf_file)."\">zde</a>.";
+
+    render_short_end();
+	exit(0);
 
 }
 function render_regen_pdf_img_done($cmd, $pdf_file)
@@ -256,7 +241,7 @@ function render_regen_pdf_img_init()
 <?php }
 
 function render_short_begin() {
-        echo("<html><head><meta http-equiv='Content-Type' content='text/html; charset=utf-8'></head><body>");
+        echo("<html><head><meta http-equiv='Content-Type' content='text/html; charset=iso-8859-2'></head><body>");
 }
 function render_short_end() {
         echo("</body></html>");
@@ -383,7 +368,7 @@ function do_update_correction()
 	$txt =    get_post('txt', 'notxt');
 	$au =     get_post('au', 'anonym');
 
-	setcookie('opraf-au', $au);
+	setcookie('author', $au);
 
 	if( $id === null ){ 
 		return;
@@ -418,7 +403,7 @@ function do_insert_correction()
 	$txt =    get_post('txt', 'notxt');
 	$au =     get_post('au', 'anonym');
 
-	setcookie('opraf-au', $au);
+	setcookie('author', $au);
 
 	$sql = "INSERT INTO opravy (pdf, img_id, x, y, txt, au) VALUES (" .
 			$db->quote($pdf) . "," .
@@ -478,7 +463,7 @@ function render_images()
 
 	$imgs = get_images($pdf_base);
 	if( count($imgs) == 0 ) { 
-		render_regen_form($pdf_file, 'Žádný obrázek. Obrázky je nutné vygenerovat');
+		render_regen_form($pdf_file, 'Obrázky je nutné nejdříve vygenerovat.');
 		return;
 	}
 	render_check_update($pdf_base, $imgs[0]);
@@ -499,7 +484,7 @@ function render_delall($pdf_file)
 	  <input type='hidden' name='action' value='delall'/>
 	  <input type='submit' value='Smazat všechny komentáře'/>
 	  <input type='hidden' name='pdf' value=<?php eeq($pdf_file)?>/>
-	  <input type='checkbox' name='yes'/> Souhlasim se smazáním všech kometářů
+	  <input type='checkbox' name='yes'/> Souhlasím se smazáním všech kometářů
 	</form>
 	<hr/>
 
@@ -542,7 +527,7 @@ function render_check_update($pdf_base, $img_first)
 // escape to html
 function escape($txt)
 {
-	return htmlspecialchars($txt, ENT_QUOTES);
+	return htmlspecialchars($txt, ENT_QUOTES,  "ISO-8859-1");
 }
 
 // echo html-escaped text
@@ -696,33 +681,37 @@ function render_scroll($scroll)
 
 // gen html documentation
 function render_doc()
-{?>
-	<pre><?php  ee(get_help_doc()) ?></pre>
-<?php }
+{
+	echo'<pre>'.escape(get_help_doc()).'</pre>';
+}
 
 
 function render_ls_files()
 {
 	global $pdf_dir;
-        $files = array();
+	$files = array();
 	if( $dir = opendir($pdf_dir) ) {
-                while (($file = readdir($dir)) !== false)  {
-                        if( substr($file, -4) != '.pdf' ){ 
-                                continue;
-                        }
-                        $files[] = $file;
-                }
-                sort($files);
+    	while (($file = readdir($dir)) !== false)  {
+        	if( substr($file, -4) != '.pdf' ) continue;
+			$files[] = $file;
         }
+		usort($files, function($a, $b) {
+			 global $pdf_dir;
+   			 return filemtime("$pdf_dir/$a") < filemtime("$pdf_dir/$b");
+		});
+        //sort($files);
+    }
 	return $files;
 }
 
 // gen dir list of .pdf files
 function render_ls()
 {?>
+	<p>
 	<?php  foreach(render_ls_files()  as $file): ?>
 	  <a href='?pdf=<?php  ee($file) ?>'><?php ee($file)?></a><br/>
 	<?php  endforeach  ?>
+	</p>
 <?php }
 
 // generate html form which regenerate .pdf
@@ -734,7 +723,7 @@ function render_regen_form($pdf_file, $text, $small_pdf_button = true)
 	<?php if ($small_pdf_button): ?>  
 		<button type='submit' name='action' value='regen'>Generovat obrázky</button>
 	<?php endif?>
-    	<button type='submit' name='action' value='regen2'>Generovat obrázky z velkých .pdf</button>
+    	<!-- <button type='submit' name='action' value='regen2'>Generovat obrázky z velkých .pdf</button> -->
   	</form>
 <?php }
 #######################################################################
@@ -743,24 +732,27 @@ if( ! init() ) {
 	die("neco se pdfelalo\n");
 }
 
-$au = isset($_COOKIE['opraf-au'])? $_COOKIE['opraf-au'] : 'anonym';
+$au = isset($_COOKIE['author'])? $_COOKIE['author'] : 'anonym';
 
 render_html($pdf_file, $au);
 
 function render_html($pdf_file, $au)
 {?><html>
 	<head>
-        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+        <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-2">
 	<link rel="stylesheet" type="text/css" media="screen, projection" href="opraf.css" />
 	<script src="opraf.js"></script>
-	<title>opraf <?php  ee($pdf_file) ?></title>
+	<title>Korektury <?php  ee($pdf_file) ?></title>
 	</head>
 	<body> 
 
-	<h1>opraf <?php  ee($pdf_file) ?></h1>
-	<i>klikni na chybu, napiš komentář</i>  |
+	<h1>Korektury <?php  ee($pdf_file) ?></h1>
+	<i>Klikni na chybu, napiš komentář</i>  |
 	<a href="?action=ls">ls</a> |
-	<a href="?action=doc">doc</a> |
+	<a href="?action=doc">help</a> |&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|
+	<a href="https://mam.mff.cuni.cz/">hlavní stránka</a> |
+	<a href="https://mam.mff.cuni.cz/admin">admin</a> |
+	<a href="https://mam.mff.cuni.cz/wiki">wiki</a> |
 	<hr/>
 
 	<div id="commform-div">
@@ -781,6 +773,17 @@ function render_html($pdf_file, $au)
 	</form>
 	</div>
 	<?php  render_content() ?>
+	<!-- Google analytics -->
+	<script>
+  	(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+	  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+ 	 m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+ 	 })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+ 	 ga('create', 'UA-44119587-2', 'auto');
+ 	 ga('send', 'pageview');
+
+	</script>
 </body> </html>
 <?php }
 

@@ -1,3 +1,6 @@
+body{background: #f3f3f3; color: black;}
+img{background:white;}
+
 .pointer-hi, 
 .pointer, 
 .pointer-done, 
@@ -81,11 +84,6 @@ form {
 .close-button{
 	background-color: yellow;	
 }
-
-body {
-	background-color: #b0b0ff;
-}
-
 
 
 .box button,
