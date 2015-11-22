@@ -1,9 +1,5 @@
 <?php
 
-// django authentication
-require_once("../pmwiki/local/django.php");
-django_auth("/korektury");
-
 // configuration file
 require 'config.php';
 
