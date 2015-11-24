@@ -156,6 +156,9 @@ function do_post()
 	case 'del':
 		do_del();
 		break;
+	case 'del-comment':
+		do_delete_comment();
+		break;
 	case 'done':
 		do_done(true);
 		break;
@@ -449,6 +452,32 @@ function do_insert_comment()
 	}
 }
 
+// delete a comment from the database
+function do_delete_comment()
+{
+    global $db;
+    $id = get_post("id");
+
+    // is the comment to be removed the last one under his correction?
+    $sql = "SELECT COUNT(*) as pocet FROM komentare WHERE oprava_id = " .
+        " (SELECT oprava_id FROM komentare WHERE id = " . $db->quote($id) . ") " .
+        " AND cas > (SELECT cas FROM komentare WHERE id = " . $db->quote($id) . "); ";
+
+
+    $pocet = $db->query($sql)->fetchAll()[0]["pocet"];
+    if ($pocet > 0) {
+        ee("You cannot remove this comment, because there are newer comments under its correction.");
+        die();
+    }
+
+    $sql = "DELETE FROM komentare WHERE id = " . $db->quote($id) . ";";
+    $rc = $db->exec($sql);
+    if ($rc == 0) {
+        ee("Cannot delete from database: " . $sql);
+        die("");
+    }
+}
+
 
 // rid off .pdf
 function strip_ext($file)
@@ -626,8 +655,8 @@ function render_opravy()
 		$imgs[$img_id][] = array($id, (int)$row['x'], (int)$row['y']);
 
 		// get comments for the correction
-		$c_sql = "SELECT * FROM komentare WHERE oprava_id = " . $db->quote($row['id']) . ";";
-		$comments = $db->query($c_sql);
+		$c_sql = "SELECT * FROM komentare WHERE oprava_id = " . $db->quote($row['id']) . " ORDER BY cas;";
+		$comments = $db->query($c_sql)->fetchAll();
 
 		render_oprava($pdf_file, $id, $next_id, $pdf_file, $row, $icons, $comments);
 	}
@@ -686,10 +715,34 @@ function render_oprava($pdf_file, $id, $next_id, $pdf_file, $row, $icons, $comme
 	 </div> <?php /* float-right*/?>
 	 <div id='<?php ee($id)?>-text'><?php ee($row, 'txt'); ?></div>
 	 <?php
+
+        $len = count($comments);
+        $i = 0;
 		foreach ($comments as $c) {
-			echo "<hr><div class='comment'><b>" . $c["au"] . "</b><br>" .
-				 "" . $c["text"] . "</div>";
-		}
+            $i++; ?>
+			<hr>
+            <div class='comment'><b><?php ee($c["au"]) ?></b>
+            <?php
+            // last comment can be deleted
+            if ($i == $len) {
+            ?>
+              <div class="float-right">
+                <form  action='' onsubmit='save_scroll(this)' method='POST'>
+                  <input type='hidden' name='pdf' value=<?php eeq($pdf_file)?>>
+                  <input type='hidden' name='id' value=<?php eeq($c["id"])?>>
+                  <input type='hidden' name='scroll'>
+                  <button type='submit' name='action' value='del-comment' title='Smaž komentář'
+                    onclick='return confirm("Opravdu smazat komentář?")'><img src=<?php eeq($icons,'dele'); ?>/></button>
+                </form>
+              </div>
+            <?php
+            }
+            ?>
+              <br><?php ee($c["text"]) ?>
+            </div>
+
+		<?php
+        }
 	 ?>
 	</div><?php /* box-done|box */?>
 <?php }

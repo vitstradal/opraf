@@ -11,6 +11,7 @@ CREATE TABLE opravy(
 
 CREATE TABLE komentare(
 	id INTEGER PRIMARY KEY,
+    cas DATETIME DEFAULT CURRENT_TIMESTAMP,
 	oprava_id INTEGER,
 	text TEXT,
 	au TEXT,
