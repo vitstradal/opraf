@@ -137,6 +137,23 @@ function box_edit(button, action)
 
 }
 
+// show comment form when 'update-comment' button pressed
+function update_comment(button)
+{
+	var divbox = button.parentNode.parentNode.parentNode;
+	var id = divbox.id;
+	var divpointer = document.getElementById(divbox.id + '-pointer');
+	var dx = parseInt(divpointer.style.left);
+	var dy = parseInt(divpointer.style.top);
+
+    var commentdiv = button.parentNode.parentNode;
+    var id = commentdiv.id.substring(1);
+
+    var text = document.getElementById('kt' + id).innerHTML.unescapeHTML();
+
+    return show_form(divbox.img_id, dx, dy, id, text, 'update-comment');
+}
+
 //fill up comment form and show him
 function show_form(img_id, dx, dy, id, text, action) {
 	var form = document.getElementById('commform');
