@@ -349,20 +349,29 @@ function do_del()
 function do_delall()
 {
 	global $db;
+    global $pdf_dir;
+    global $img_dir;
+
 	$pdf = get_post('pdf');
 	$yes = get_post('yes');
 
-	if( $yes == 'on' ) { 
-		$sql = "DELETE FROM opravy WHERE pdf = " . $db->quote($pdf);
+	if( $yes == 'on' ) {
+        $sql = "DELETE FROM komentare WHERE oprava_id IN (SELECT id FROM opravy WHERE pdf = " . $db->quote($pdf) . "); " .
+               "DELETE FROM opravy WHERE pdf = " . $db->quote($pdf) . ";";
+
 		$rc = $db->exec($sql);
-		if( $rc == 0 ) {
-			#print_r($db->errorInfo());
-			ee("cannt del from db.'$sql'");
-			die('');
-		}
+
+        unlink($pdf_dir . "/" . basename($pdf));
+        foreach (get_images(strip_ext($pdf)) as $img) {
+            unlink("$img_dir/$img");
+        }
+
+        header("Location: opraf.php");
+        die();
 	}
 	else {
-		die("cannt del all comments to '$pdf', check agreement checkbox!");
+		die("Pokud chcete opravdu smazat '$pdf', zaškrtněte checkbox");
+		//die("Cannot delete '$pdf', check agreement checkbox!");
 	}
 }
 
@@ -612,9 +621,9 @@ function render_delall($pdf_file)
 
 	<form method="post">
 	  <input type='hidden' name='action' value='delall'/>
-	  <input type='submit' value='Smazat všechny komentáře'/>
+	  <input type='submit' value='Smazat toto pdf' onclick='return confirm("Opravdu smazat pdf a všechny korektury?");'/>
 	  <input type='hidden' name='pdf' value=<?php eeq($pdf_file)?>/>
-	  <input type='checkbox' name='yes'/> Souhlasím se smazáním všech kometářů
+	  <input type='checkbox' name='yes'/> Souhlasím se smazáním pdf a všech souvisejících korektur
 	</form>
 	<hr/>
 
