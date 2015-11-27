@@ -47,7 +47,9 @@ $icons = array(
 	'undo' => 'imgs/undo.png',
 	'done' => 'imgs/check.png',
 	'dele' => 'imgs/delete.png',
+	'delegr' => 'imgs/delete-gr.png',
 	'edit' => 'imgs/edit.png',
+	'editgr' => 'imgs/edit-gr.png',
 	'link' => 'imgs/link.png',
 	'next' => 'imgs/next.png',
 	'nextgr' => 'imgs/next-gr.png',
@@ -307,12 +309,33 @@ function remove_images($imgs)
 	}
 }
 
+// is it allowed to delete/update this correction?
+function correction_change_allowed($oprava_id)
+{
+    global $db;
+
+    $sql = "SELECT COUNT(*) as pocet FROM komentare WHERE oprava_id = " .
+            $db->quote($oprava_id) . ";";
+
+    $pocet = $db->query($sql)->fetchAll()[0]["pocet"];
+    if ($pocet > 0) {
+        return false;
+    }
+    return true;
+}
+
 // del correction
 function do_del()
 {
 
 	global $db;
 	$id = substr(get_post('id'), 2);
+
+    if (!correction_change_allowed($id)) {
+        ee("You cannot delete this correction because there are comments under it");
+        die();
+    }
+
 	$sql = "DELETE FROM opravy WHERE id = " . $db->quote($id);
 	$rc = $db->exec($sql);
 	if( $rc == 0 ) {
@@ -321,6 +344,7 @@ function do_del()
 		die('');
 	}
 }
+
 // del correction
 function do_delall()
 {
@@ -373,6 +397,11 @@ function do_update_correction()
 	#$y =      get_post('y', 0);
 	$txt =    get_post('txt', 'notxt');
 	$au =     get_post('au', 'anonym');
+
+    if (!correction_change_allowed($id)) {
+        ee("You cannot update this correction, because there are comments under it");
+        die();
+    }
 
 	setcookie('author', $au);
 
@@ -723,7 +752,9 @@ function render_statistika($pre_msg, $text)
 <?php }
 
 function render_oprava($pdf_file, $id, $next_id, $pdf_file, $row, $icons, $comments)
-{?>
+{
+    $len_comments = count($comments);
+    ?>
 	<?php  if( $row['status'] == 'DONE' ) : ?>
 	<div onclick='img_click(this,event)' id='<?php ee($id)?>-pointer' class='pointer-done'></div>
 	 <div name=<?php eeq($id)?> id=<?php eeq($id)?> class='box-done' onmouseover='box_onmouseover(this,1)' onmouseout='box_onmouseout(this,1)' >
@@ -738,7 +769,15 @@ function render_oprava($pdf_file, $id, $next_id, $pdf_file, $row, $icons, $comme
 	   <input type='hidden' name='pdf' value=<?php eeq($pdf_file)?>>
 	   <input type='hidden' name='id' value=<?php eeq($id)?>>
 	   <input type='hidden' name='scroll'>
-	   <button type='submit' name='action' value='del' title='Smaž opravu' onclick='return confirm("Opravdu smazat korekturu?");'><img src=<?php eeq($icons,'dele')?>/></button>
+
+       <button name='action' value='del'
+         <?php if ($len_comments == 0) { ?>
+           type='submit'
+           title='Smaž opravu' onclick='return confirm("Opravdu smazat korekturu?");'><img src=<?php eeq($icons,'dele')?>/></button>
+         <?php } else { ?>
+           type='button'
+           title="Korekturu nelze smazat &ndash; už ji někdo okomentoval"><img src=<?php eeq($icons,'delegr')?>/></button>
+         <?php } ?>
          
 	   <?php  if( $row['status'] == 'DONE' ) : ?>
 	   <button type='submit' name='action' value='undone' title='Označ jako neopravené'><img src=<?php eeq($icons,'undo')?>/></button>
@@ -746,7 +785,13 @@ function render_oprava($pdf_file, $id, $next_id, $pdf_file, $row, $icons, $comme
 	   <button type='submit' name='action' value='done' title='Označ jako opravené'><img src=<?php eeq($icons,'done')?>/></button>
 	   <?php  endif ?> 
          
-	   <button type='button' onclick='box_edit(this, "update");' title='Oprav opravu'><img src=<?php eeq($icons, 'edit')?>/></button>
+       <button type='button'
+         <?php if ($len_comments == 0) { ?>
+           onclick='box_edit(this, "update");' title='Oprav opravu'><img src=<?php eeq($icons, 'edit')?>/></button>
+         <?php } else { ?>
+           title="Korekturu nelze upravit &ndash; už ji někdo okomentoval"><img src=<?php eeq($icons, 'editgr')?>/></button>
+         <?php } ?>
+
 	   <button type='button' onclick='box_edit(this, "comment");' title='Komentovat'><img src=<?php eeq($icons, 'comment')?>/></button>
 	   <a href='#<?php ee($id)?>'><button type='button' title='Link na opravu'><img src=<?php eeq($icons, 'link')?>/></button></a>
 	   <?php  if( $next_id ) : ?>
@@ -759,7 +804,6 @@ function render_oprava($pdf_file, $id, $next_id, $pdf_file, $row, $icons, $comme
 	 <div id='<?php ee($id)?>-text'><?php ee($row, 'txt'); ?></div>
 	 <?php
 
-        $len = count($comments);
         $i = 0;
 		foreach ($comments as $c) {
             $i++; ?>
@@ -767,7 +811,7 @@ function render_oprava($pdf_file, $id, $next_id, $pdf_file, $row, $icons, $comme
             <div class='comment' id='k<?php ee($c["id"])?>'><b><?php ee($c["au"]) ?></b>
             <?php
             // last comment can be deleted or updated
-            if ($i == $len) {
+            if ($i == $len_comments) {
             ?>
               <div class="float-right">
                 <form  action='' onsubmit='save_scroll(this)' method='POST'>
