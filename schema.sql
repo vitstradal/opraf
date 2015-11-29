@@ -17,3 +17,10 @@ CREATE TABLE komentare(
 	au TEXT,
 	FOREIGN KEY(oprava_id) REFERENCES opravy(id)
 );
+
+CREATE TABLE zamky(
+    id INTEGER PRIMARY KEY,
+    pdf TEXT,
+    au TEXT,
+    cas DATETIME DEFAULT CURRENT_TIMESTAMP
+);

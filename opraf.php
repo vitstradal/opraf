@@ -62,19 +62,34 @@ $db = null;
 # current pdf file name (from param 'pdf')
 $pdf_file = null;
 
+# pdf should be locked when somebody is fixing the mistakes pointed out by
+# corrections
+$lock = null;
+
 // init db, dispach post, or get
 function init()
 {
 	myconnect();
-	if( count($_POST) > 0 ) { 
+
+	# get
+	global $pdf_file;
+	$pdf_file = get_get('pdf');
+
+    # lock
+    global $db;
+    global $lock;
+    $sql = "SELECT * FROM zamky WHERE pdf = " . $db->quote($pdf_file) . ";";
+    $result = $db->query($sql);
+    foreach ($result as $row) {
+        $lock = $row;
+        break;
+    }
+
+    # post
+	if(count($_POST) > 0) {
 		do_post();
 		redir_to_get();
 	}
-
-	# get ###################################################
-
-	global $pdf_file;
-	$pdf_file = get_get('pdf');
 
 	return true;
 }
@@ -155,6 +170,12 @@ function do_post()
 	case 'delall':
 		do_delall();
 		break;
+    case 'lock':
+        do_lock();
+        break;
+    case 'unlock':
+        do_unlock();
+        break;
 	case 'del':
 		do_del();
 		break;
@@ -352,6 +373,11 @@ function do_delall()
     global $pdf_dir;
     global $img_dir;
 
+    global $lock;
+    if ($lock) {
+        die("Zamknuté pdf nelze smazat.");
+    }
+
 	$pdf = get_post('pdf');
 	$yes = get_post('yes');
 
@@ -372,6 +398,41 @@ function do_delall()
 	else {
 		die("Pokud chcete opravdu smazat '$pdf', zaškrtněte checkbox");
 		//die("Cannot delete '$pdf', check agreement checkbox!");
+	}
+}
+
+// "lock" pdf (so that everybody sees that the mistakes are being fixed)
+function do_lock()
+{
+    global $db;
+
+    $pdf = get_post('pdf');
+	$au = get_post('au', 'anonym');
+
+	setcookie('author', $au);
+
+    $sql = "INSERT INTO zamky (pdf, au) VALUES (" . $db->quote($pdf) . ", " . $db->quote($au) . ");";
+
+	$rc = $db->exec($sql);
+	if ($rc == 0) {
+		ee("Cannot insert into db. '$sql'");
+		die('');
+	}
+}
+
+// "unlock" pdf
+function do_unlock()
+{
+    global $db;
+
+    $pdf = get_post('pdf');
+
+    $sql = "DELETE FROM zamky WHERE pdf = " . $db->quote($pdf) . ";";
+
+	$rc = $db->exec($sql);
+	if ($rc == 0) {
+		ee("Cannot delete from db. '$sql'");
+		die('');
 	}
 }
 
@@ -598,6 +659,7 @@ function render_images()
 	global $pdf_file;
 	global $img_dir;
 	global $img_uri;
+    global $lock;
 	$pdf_base = strip_ext($pdf_file);
 
 	$imgs = get_images($pdf_base);
@@ -612,10 +674,47 @@ function render_images()
 		$img_path = "$img_dir/$img";
 		list($w, $h) = getimagesize($img_path);
 		$id = "img-$idx";
+
+        if ($lock) {
+            echo "<b>Od " . $lock["cas"] . " zanáší " . $lock["au"] . " korektury.</b>";
+        }
 		render_image($img_path, $id, $w, $h);
 	}
+
+    if ($lock) {
+        render_unlock($pdf_file);
+    } else {
+        render_lock($pdf_file);
+    }
+
 	render_delall($pdf_file);
 }
+
+function render_lock($pdf_file)
+{
+    global $au;
+
+    ?>
+	<form method="post">
+	  <input type='hidden' name='action' value='lock'/>
+      <input type='text' name='au' value=<?php eeq($au)?>/>
+	  <input type='submit' value='Zamknout toto pdf' onclick='return confirm("Opravdu se jdete pustit do zanášení korektur?");'/>
+	  <input type='hidden' name='pdf' value=<?php eeq($pdf_file)?>/>
+	</form>
+	<hr/>
+<?php }
+
+function render_unlock($pdf_file)
+{
+    ?>
+	<form method="post">
+	  <input type='hidden' name='action' value='unlock'/>
+	  <input type='submit' value='Odemknout toto pdf' onclick='return confirm("Opravdu odemknout toto pdf?");'/>
+	  <input type='hidden' name='pdf' value=<?php eeq($pdf_file)?>/>
+	</form>
+	<hr/>
+<?php }
+
 function render_delall($pdf_file)
 {?>
 
@@ -629,8 +728,16 @@ function render_delall($pdf_file)
 
 <?php }
 function render_image($img_path, $id, $w, $h)
-{?>
-	 <div class='imgdiv'><img width=<?php eeq($w)?> height=<?php eeq($h)?> onclick='img_click(this,event)' id=<?php eeq($id)?> src=<?php eeq($img_path)?>/></div><hr/>
+{
+    global $lock;
+    ?>
+	 <div class='imgdiv'><img width=<?php eeq($w)?> height=<?php eeq($h)?>
+       <?php if ($lock) { ?>
+         onclick='if (confirm("Přidat korekturu, i když je <?php ee($lock["au"])?> právě zanáší?")) { img_click(this,event); }'
+       <?php } else { ?>
+         onclick='img_click(this,event);'
+       <?php } ?>
+       id=<?php eeq($id)?> src=<?php eeq($img_path)?>/></div><hr/>
 <?php }
 
 // check if .pdf is newer than first img
@@ -933,16 +1040,27 @@ $au = isset($_COOKIE['author'])? $_COOKIE['author'] : 'anonym';
 render_html($pdf_file, $au);
 
 function render_html($pdf_file, $au)
-{?><html>
+{
+
+    global $lock;
+    ?>
+
+    <html>
 	<head>
 		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 	<link rel="stylesheet" type="text/css" media="screen, projection" href="opraf.css" />
 	<script src="opraf.js"></script>
 	<title>Korektury <?php  ee($pdf_file) ?></title>
 	</head>
-	<body> 
 
-	<h1>Korektury <?php  ee($pdf_file) ?></h1>
+	<body <?php if ($lock) {?>class='locked'<?php }?>>
+
+	<h1>Korektury <?php  ee($pdf_file) ?>
+    <?php if ($locked) {
+        echo "&ndash; Od " . $lock["cas"] . " zanáší " . $lock["au"] . " korektury.";
+    }
+    ?>
+    </h1>
 	<i>Klikni na chybu, napiš komentář</i>  |
 	<a href="?action=ls">ls</a> |
 	<a href="?action=doc">help</a> |&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|

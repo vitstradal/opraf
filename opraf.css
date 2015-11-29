@@ -1,4 +1,8 @@
 body{background: #f3f3f3; color: black;}
+body.locked {
+    background: rgb(144, 189, 255);
+}
+
 img{background:white;}
 
 .pointer-hi, 
@@ -115,3 +119,4 @@ form {
     float: left;
     margin-top: 3px;
 }
+
