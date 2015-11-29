@@ -116,7 +116,7 @@ function img_click(element, ev) {
 // show comment form, when 'edit' or 'comment' button pressed
 function box_edit(button, action)
 {
-	var divbox = button.parentNode.parentNode.parentNode;
+	var divbox = button.parentNode.parentNode.parentNode.parentNode;
 	var id = divbox.id;
 	//alert("id: " +  id);
 	var divpointer = document.getElementById(divbox.id + '-pointer');

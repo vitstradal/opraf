@@ -772,44 +772,46 @@ function render_oprava($pdf_file, $id, $next_id, $pdf_file, $row, $icons, $comme
 	 <div name=<?php eeq($id)?> id=<?php eeq($id)?> class='box' onmouseover='box_onmouseover(this,0)' onmouseout='box_onmouseout(this,0)' >
 	 <?php  endif ?> 
          
-	 <b><?php ee($row, 'au')?></b>
-	 <div class='float-right'>
-	  <form  action='' onsubmit='save_scroll(this)' method='POST'>
-	   <input type='hidden' name='pdf' value=<?php eeq($pdf_file)?>>
-	   <input type='hidden' name='id' value=<?php eeq($id)?>>
-	   <input type='hidden' name='scroll'>
+     <div class='corr-header'>
+	   <div class='author'><?php ee($row, 'au')?></div>
+	   <div class='float-right'>
+	    <form  action='' onsubmit='save_scroll(this)' method='POST'>
+	     <input type='hidden' name='pdf' value=<?php eeq($pdf_file)?>>
+	     <input type='hidden' name='id' value=<?php eeq($id)?>>
+	     <input type='hidden' name='scroll'>
 
-       <button name='action' value='del'
-         <?php if ($len_comments == 0) { ?>
-           type='submit'
-           title='Smaž opravu' onclick='return confirm("Opravdu smazat korekturu?");'><img src=<?php eeq($icons,'dele')?>/></button>
-         <?php } else { ?>
-           type='button'
-           title="Korekturu nelze smazat &ndash; už ji někdo okomentoval"><img src=<?php eeq($icons,'delegr')?>/></button>
-         <?php } ?>
-         
-	   <?php  if( $row['status'] == 'DONE' ) : ?>
-	   <button type='submit' name='action' value='undone' title='Označ jako neopravené'><img src=<?php eeq($icons,'undo')?>/></button>
-	   <?php  else: ?>
-	   <button type='submit' name='action' value='done' title='Označ jako opravené'><img src=<?php eeq($icons,'done')?>/></button>
-	   <?php  endif ?> 
-         
-       <button type='button'
-         <?php if ($len_comments == 0) { ?>
-           onclick='box_edit(this, "update");' title='Oprav opravu'><img src=<?php eeq($icons, 'edit')?>/></button>
-         <?php } else { ?>
-           title="Korekturu nelze upravit &ndash; už ji někdo okomentoval"><img src=<?php eeq($icons, 'editgr')?>/></button>
-         <?php } ?>
+         <button name='action' value='del'
+           <?php if ($len_comments == 0) { ?>
+             type='submit'
+             title='Smaž opravu' onclick='return confirm("Opravdu smazat korekturu?");'><img src=<?php eeq($icons,'dele')?>/></button>
+           <?php } else { ?>
+             type='button'
+             title="Korekturu nelze smazat &ndash; už ji někdo okomentoval"><img src=<?php eeq($icons,'delegr')?>/></button>
+           <?php } ?>
+           
+	     <?php  if( $row['status'] == 'DONE' ) : ?>
+	     <button type='submit' name='action' value='undone' title='Označ jako neopravené'><img src=<?php eeq($icons,'undo')?>/></button>
+	     <?php  else: ?>
+	     <button type='submit' name='action' value='done' title='Označ jako opravené'><img src=<?php eeq($icons,'done')?>/></button>
+	     <?php  endif ?> 
+           
+         <button type='button'
+           <?php if ($len_comments == 0) { ?>
+             onclick='box_edit(this, "update");' title='Oprav opravu'><img src=<?php eeq($icons, 'edit')?>/></button>
+           <?php } else { ?>
+             title="Korekturu nelze upravit &ndash; už ji někdo okomentoval"><img src=<?php eeq($icons, 'editgr')?>/></button>
+           <?php } ?>
 
-	   <button type='button' onclick='box_edit(this, "comment");' title='Komentovat'><img src=<?php eeq($icons, 'comment')?>/></button>
-	   <a href='#<?php ee($id)?>'><button type='button' title='Link na opravu'><img src=<?php eeq($icons, 'link')?>/></button></a>
-	   <?php  if( $next_id ) : ?>
-	    <a href='#<?php ee($next_id)?>'><img title='Další oprava' src=<?php eeq($icons, 'next')?>/></button></a>
-	   <?php  else: ?>
-	     <img title='Toto je poslední oprava' src=<?php eeq($icons, 'nextgr')?>/>
-	   <?php  endif ?> 
-	  </form>
-	 </div> <?php /* float-right*/?>
+	     <button type='button' onclick='box_edit(this, "comment");' title='Komentovat'><img src=<?php eeq($icons, 'comment')?>/></button>
+	     <a href='#<?php ee($id)?>'><button type='button' title='Link na opravu'><img src=<?php eeq($icons, 'link')?>/></button></a>
+	     <?php  if( $next_id ) : ?>
+	      <a href='#<?php ee($next_id)?>'><img title='Další oprava' src=<?php eeq($icons, 'next')?>/></button></a>
+	     <?php  else: ?>
+	       <img title='Toto je poslední oprava' src=<?php eeq($icons, 'nextgr')?>/>
+	     <?php  endif ?> 
+	    </form>
+	   </div>
+     </div><?php //hlavicka ?>
 	 <div id='<?php ee($id)?>-text'><?php ee($row, 'txt'); ?></div>
 	 <?php
 
@@ -817,25 +819,28 @@ function render_oprava($pdf_file, $id, $next_id, $pdf_file, $row, $icons, $comme
 		foreach ($comments as $c) {
             $i++; ?>
 			<hr>
-            <div class='comment' id='k<?php ee($c["id"])?>'><b><?php ee($c["au"]) ?></b>
-            <?php
-            // last comment can be deleted or updated
-            if ($i == $len_comments) {
-            ?>
-              <div class="float-right">
-                <form  action='' onsubmit='save_scroll(this)' method='POST'>
-                  <input type='hidden' name='pdf' value=<?php eeq($pdf_file)?>>
-                  <input type='hidden' name='id' value=<?php eeq($c["id"])?>>
-                  <input type='hidden' name='scroll'>
-                  <button type='submit' name='action' value='del-comment' title='Smaž komentář'
-                    onclick='return confirm("Opravdu smazat komentář?")'><img src=<?php eeq($icons,'dele'); ?>/></button>
-                </form>
-                <button type='button' onclick='update_comment(this);' title='Uprav komentář'
-                  ><img src=<?php eeq($icons, 'edit')?>/></button>
+            <div class='comment' id='k<?php ee($c["id"])?>'>
+              <div class='corr-header'>
+                <div class='author'><?php ee($c["au"]) ?></div>
+                <?php
+                // last comment can be deleted or updated
+                if ($i == $len_comments) {
+                ?>
+                  <div class="float-right">
+                    <form  action='' onsubmit='save_scroll(this)' method='POST'>
+                      <input type='hidden' name='pdf' value=<?php eeq($pdf_file)?>>
+                      <input type='hidden' name='id' value=<?php eeq($c["id"])?>>
+                      <input type='hidden' name='scroll'>
+                      <button type='submit' name='action' value='del-comment' title='Smaž komentář'
+                        onclick='return confirm("Opravdu smazat komentář?")'><img src=<?php eeq($icons,'dele'); ?>/></button>
+                    </form>
+                    <button type='button' onclick='update_comment(this);' title='Uprav komentář'
+                      ><img src=<?php eeq($icons, 'edit')?>/></button>
+                  </div>
+                <?php
+                }
+                ?>
               </div>
-            <?php
-            }
-            ?>
               <div id='kt<?php ee($c["id"])?>'><?php ee($c["text"]) ?></div>
             </div>
 

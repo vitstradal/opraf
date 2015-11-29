@@ -105,3 +105,13 @@ form {
 .comment hr {
 	height: 0px;
 }
+
+.corr-header {
+    overflow: auto;
+}
+
+.author {
+    font-weight: bold;
+    float: left;
+    margin-top: 3px;
+}
