@@ -1,3 +1,5 @@
+all:
+	@echo usage: make init
 init:
 	sqlite3 < schema.sql db/opraf.db
 	mkdir -p png
